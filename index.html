@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Problem Tracker — Sign In</title>
+  <meta name="description"
+    content="Sign in to Daily Problem Tracker to sync your coding progress, streaks, and MAANG prep notes across all devices." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body class="login-page">
+
+  <!-- Animated background blobs -->
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Grid overlay -->
+  <div class="grid-overlay"></div>
+
+  <main class="login-container">
+
+    <!-- Brand -->
+    <div class="brand" id="brand">
+      <div class="brand-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="10" fill="url(#brandGrad)" />
+          <path d="M8 16L13 21L24 10" stroke="white" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <defs>
+            <linearGradient id="brandGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6366f1" />
+              <stop offset="1" stop-color="#8b5cf6" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <span class="brand-name">Daily Problem Tracker</span>
+    </div>
+
+    <!-- Card -->
+    <div class="card login-card" id="loginCard">
+      <div class="card-glow"></div>
+
+      <div class="card-header">
+        <h1 class="card-title">Welcome back</h1>
+        <p class="card-subtitle">Sign in to sync your coding streak and dashboard</p>
+      </div>
+
+      <!-- Stats tease -->
+      <div class="stats-row">
+        <div class="stat-chip">
+          <span class="stat-icon">🔥</span>
+          <span>Track Streaks</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-icon">📊</span>
+          <span>Analytics</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-icon">🧠</span>
+          <span>AI Insights</span>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>Continue with</span>
+      </div>
+
+      <!-- Google Sign-In button (rendered by GSI) -->
+      <div id="google-signin-btn" class="google-btn-wrapper"></div>
+
+
+
+      <!-- Error message -->
+      <div class="error-banner" id="errorBanner" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path
+            d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 11a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm.75-4.75a.75.75 0 0 1-1.5 0V5.25a.75.75 0 0 1 1.5 0v2z" />
+        </svg>
+        <span id="errorText">Something went wrong. Please try again.</span>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loadingState" style="display:none;">
+        <div class="spinner"></div>
+        <span>Signing you in…</span>
+      </div>
+
+      <p class="privacy-note">
+        By signing in, you agree to our
+        <a href="#" class="link">Privacy Policy</a>.
+        We only access your basic Google profile.
+      </p>
+    </div>
+
+    <!-- Feature pills -->
+    <div class="feature-pills" id="featurePills">
+      <div class="pill">✅ LeetCode Sync</div>
+      <div class="pill">📝 Prep Notes</div>
+      <div class="pill">🗓️ Daily Streaks</div>
+      <div class="pill">🤖 Gemini AI</div>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+
+</html>
