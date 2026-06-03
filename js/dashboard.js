@@ -9,16 +9,10 @@
 
 // ── Debug Logger ────────────────────────────────────────────────
 function log(msg, isError = false) {
-  console.log(`[Dashboard] ${msg}`);
-  const out = document.getElementById('debugOutput');
-  const consoleUi = document.getElementById('debugConsole');
-  if (out && consoleUi) {
-    consoleUi.style.display = 'block';
-    const div = document.createElement('div');
-    div.style.color = isError ? '#ff4d4d' : '#0f0';
-    div.textContent = `> ${msg}`;
-    out.appendChild(div);
-    out.scrollTop = out.scrollHeight;
+  if (isError) {
+    console.error(`[Dashboard] ${msg}`);
+  } else {
+    console.log(`[Dashboard] ${msg}`);
   }
 }
 
@@ -103,15 +97,14 @@ function renderProblems(problems) {
 
   if (!problems || problems.length === 0) {
     emptyState.style.display = 'block';
+    // Clear old items
+    list.querySelectorAll('.problem-item').forEach(n => n.remove());
     return;
   }
   emptyState.style.display = 'none';
 
   // Clear old items
   list.querySelectorAll('.problem-item').forEach(n => n.remove());
-
-  // Count by difficulty
-  let easy = 0, medium = 0, hard = 0;
 
   problems.forEach(p => {
     const diff = (p.difficulty || 'EASY').toUpperCase();
@@ -126,14 +119,38 @@ function renderProblems(problems) {
         <div class="problem-meta">${formatDate(p.solvedAt)}</div>
       </div>
       ${tags.length ? `<div class="problem-tags">${tags.map(t => `<span class="tag">${escapeHtml(t.trim())}</span>`).join('')}</div>` : ''}
+      <button class="problem-delete-btn" title="Delete problem" onclick="deleteProblem(event, ${p.id})">✕</button>
     `;
     if (p.url) {
       item.style.cursor = 'pointer';
       item.title = 'Open on LeetCode';
-      item.addEventListener('click', () => window.open(p.url, '_blank'));
+      item.querySelector('.problem-info').addEventListener('click', () => window.open(p.url, '_blank'));
     }
     list.appendChild(item);
   });
+}
+
+async function deleteProblem(event, problemId) {
+  event.stopPropagation();
+  if (!confirm('Delete this problem from your dashboard?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/problems/${problemId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    const user = getCachedUser();
+    if (user) {
+      const [problems, analytics] = await Promise.all([
+        loadProblems(user.id),
+        loadAnalytics(user.id),
+      ]);
+      renderProblems(problems);
+      if (analytics) renderAnalytics(analytics);
+    }
+  } catch (err) {
+    alert('Could not delete problem: ' + err.message);
+  }
 }
 
 function renderAnalytics(analytics) {
@@ -255,6 +272,22 @@ async function loadAnalytics(userId) {
     return res.json();
   } catch (err) {
     log(`Failed to load analytics: ${err.message}`, true);
+    return null;
+  }
+}
+
+/** Fetch analytics for the currently authenticated user via the /me shortcut. */
+async function loadMyAnalytics() {
+  log('Loading analytics from /api/analytics/me...');
+  try {
+    const res = await fetch(`${API_BASE}/api/analytics/me`, { headers: authHeaders() });
+    if (!res.ok) {
+      log(`Analytics /me error: ${res.status}`, true);
+      return null;
+    }
+    return res.json();
+  } catch (err) {
+    log(`Failed to load /me analytics: ${err.message}`, true);
     return null;
   }
 }
@@ -908,11 +941,7 @@ async function init() {
     const savedGh = localStorage.getItem('dpt_gh_user');
     if (savedGh) el('githubUser').value = savedGh;
 
-    // Fade console on total success
-    setTimeout(() => {
-      const consoleUi = document.getElementById('debugConsole');
-      if (consoleUi) consoleUi.style.opacity = '0.3';
-    }, 5000);
+    log('Dashboard loaded successfully.');
 
   } catch (err) {
     log('Init failed: ' + err.message, true);

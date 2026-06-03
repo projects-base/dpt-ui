@@ -176,9 +176,20 @@ function updateGeminiMsg(id, html) {
 
 function formatGeminiMsg(text) {
   return text
+    // code blocks first (multi-line)
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;overflow-x:auto;font-size:12px;margin:6px 0;"><code>$1</code></pre>')
+    // inline code
+    .replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.3);padding:2px 5px;border-radius:3px;font-size:12px;">$1</code>')
+    // bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
-    .replace(/```(.*?)```/gs, '<pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;overflow-x:auto;">$1</pre>');
+    // italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // numbered lists
+    .replace(/^(\d+\.\s)/gm, '<br>$1')
+    // bullet lists
+    .replace(/^[-•]\s/gm, '<br>• ')
+    // newlines (after block replacements)
+    .replace(/\n/g, '<br>');
 }
 
 // ── Helper ─────────────────────────────────────────────────────────────
@@ -297,7 +308,9 @@ async function submitTrackerProblem() {
     const cachedUser = getCachedUser();
     if (!cachedUser) { showGeminiStatus('❌ Not signed in.', 'error'); return; }
 
-    // Build notes from ratings
+    const question  = v('ext-question').value.trim();
+
+    // Build notes from ratings (keep for backwards compat / display)
     let notes = '';
     const analysis = v('ext-analysis').value.trim();
     const intuition = v('ext-intuition').value;
@@ -311,7 +324,6 @@ async function submitTrackerProblem() {
     if (impl)        notes += `Implementation: ${impl}/10\n`;
     if (readability) notes += `Readability: ${readability}/10\n`;
     if (cleanCode)   notes += `Clean Code: ${cleanCode}/10\n`;
-    if (code)        notes += `\nCode:\n${code}`;
 
     const difficulty = v('ext-difficulty').value.toUpperCase();
 
@@ -320,6 +332,8 @@ async function submitTrackerProblem() {
       url:        v('ext-link').value.trim() || null,
       difficulty,
       notes:      notes || null,
+      question:   question || null,
+      code:       code || null,
       tags:       difficulty,
       user:       { id: cachedUser.id },
     };
@@ -344,9 +358,17 @@ async function submitTrackerProblem() {
     v('ext-difficulty').value = 'Medium';
     document.querySelectorAll('.gemini-populated').forEach(el => el.classList.remove('gemini-populated'));
 
-    // Reload overview
+    // Reload overview — refresh both problems and analytics
     setTimeout(async () => {
-      await refreshProblems();
+      const user = getCachedUser();
+      if (user) {
+        const [problems, analytics] = await Promise.all([
+          loadProblems(user.id),
+          loadAnalytics(user.id),
+        ]);
+        renderProblems(problems);
+        if (analytics) renderAnalytics(analytics);
+      }
       hideGeminiStatus();
       switchTab('overview');
     }, 1500);

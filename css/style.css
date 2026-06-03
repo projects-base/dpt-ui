@@ -598,6 +598,38 @@ img { display: block; max-width: 100%; }
   gap: 4px;
   margin-left: auto;
 }
+.problem-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: var(--transition);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.problem-item:hover .problem-delete-btn {
+  opacity: 1;
+}
+.problem-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+.btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
 .tag {
   padding: 2px 7px;
   background: rgba(99,102,241,0.1);
