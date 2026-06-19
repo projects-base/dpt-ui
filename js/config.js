@@ -8,7 +8,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8080';
   }
   // TODO: Replace with your actual Render deployment URL or use relative paths if hosted together.
-  return 'https://daily-problem-tracker.onrender.com';
+  return 'https://dpt-service.onrender.com';
 };
 
 const API_BASE = getApiBaseUrl();
