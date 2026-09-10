@@ -27,6 +27,46 @@ function getToken() {
   return token;
 }
 
+/**
+ * Google ID tokens expire after about an hour, after which every API call
+ * returns 401 and the dashboard used to sit there showing stale cached data
+ * with no way back. Send the user to sign in again instead.
+ *
+ * Guarded against a redirect loop: if signing in again still produces a 401
+ * (a genuine backend/audience misconfiguration rather than an expired token)
+ * we stop bouncing and surface the error.
+ */
+const REAUTH_FLAG = 'dpt_reauth_attempted';
+
+function handleAuthExpiry() {
+  if (sessionStorage.getItem(REAUTH_FLAG)) {
+    log('Still unauthorized after re-authenticating — not redirecting again.', true);
+    showSessionBanner(
+      'The server rejected your sign-in. This usually means the backend GOOGLE_CLIENT_ID ' +
+      'does not match this site. Your cached data is shown below.'
+    );
+    return false;
+  }
+  sessionStorage.setItem(REAUTH_FLAG, '1');
+  sessionStorage.removeItem('gToken');
+  sessionStorage.removeItem('user');
+  window.location.href = '/index.html?expired=1';
+  return true;
+}
+
+/** Non-blocking banner pinned to the top of the dashboard. */
+function showSessionBanner(message) {
+  let bar = el('sessionBanner');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'sessionBanner';
+    bar.className = 'session-banner';
+    document.body.prepend(bar);
+  }
+  bar.textContent = message;
+  bar.style.display = 'block';
+}
+
 function getCachedUser() {
   const raw = sessionStorage.getItem('user');
   return raw ? JSON.parse(raw) : null;
@@ -44,6 +84,10 @@ function authHeaders() {
 function signOut() {
   sessionStorage.removeItem('gToken');
   sessionStorage.removeItem('user');
+  sessionStorage.removeItem(REAUTH_FLAG);
+  // Forget the remembered Google account, so the next sign-in shows the full
+  // account chooser instead of jumping straight back into the same one.
+  try { google?.accounts?.id?.disableAutoSelect(); } catch (_) {}
   window.location.href = '/index.html';
 }
 
@@ -84,11 +128,17 @@ function renderUserProfile(user) {
   const firstName = (user.name || 'there').split(' ')[0];
   el('welcomeName').textContent = firstName;
 
-  // Update greeting based on time of day
+  // Update greeting based on time of day.
+  // Built with textContent, not innerHTML — firstName comes from the Google
+  // profile and must never be parsed as markup.
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  el('welcomeBanner').querySelector('.welcome-title').innerHTML =
-    `${greeting}, <span id="welcomeName">${firstName}</span> 👋`;
+  const titleEl = el('welcomeBanner').querySelector('.welcome-title');
+  titleEl.textContent = `${greeting}, `;
+  const nameEl = document.createElement('span');
+  nameEl.id = 'welcomeName';
+  nameEl.textContent = firstName;
+  titleEl.append(nameEl, ' ' + String.fromCodePoint(0x1F44B));
 }
 
 function renderProblems(problems) {
@@ -138,16 +188,9 @@ async function deleteProblem(event, problemId) {
       method: 'DELETE',
       headers: authHeaders(),
     });
-    if (!res.ok) throw new Error('Delete failed');
-    const user = getCachedUser();
-    if (user) {
-      const [problems, analytics] = await Promise.all([
-        loadProblems(user.id),
-        loadAnalytics(user.id),
-      ]);
-      renderProblems(problems);
-      if (analytics) renderAnalytics(analytics);
-    }
+    if (res.status === 401) { handleAuthExpiry(); return; }
+    if (!res.ok) throw new Error(`Delete failed (HTTP ${res.status})`);
+    await refreshOverview();
   } catch (err) {
     alert('Could not delete problem: ' + err.message);
   }
@@ -169,7 +212,8 @@ function escapeHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ── Add Problem Modal ─────────────────────────────────────────────
@@ -191,34 +235,57 @@ async function submitProblem(event) {
   btn.textContent = 'Adding…';
   btn.disabled = true;
 
-  const user = getCachedUser();
-  if (!user) return;
-
-  const payload = {
-    title:      el('problemTitle').value.trim(),
-    url:        el('problemUrl').value.trim() || null,
-    difficulty: el('problemDifficulty').value,
-    tags:       el('problemTags').value.trim() || null,
-    notes:      el('problemNotes').value.trim() || null,
-    user:       { id: user.id },
-  };
-
   try {
+    const user = getCachedUser();
+    if (!user) throw new Error('You are not signed in.');
+
+    const title = el('problemTitle').value.trim();
+    if (!title) throw new Error('Title is required.');
+
+    // The server takes the owner from the auth token, so no user id is sent.
+    const payload = {
+      title,
+      url:        el('problemUrl').value.trim() || null,
+      difficulty: el('problemDifficulty').value,
+      tags:       el('problemTags').value.trim() || null,
+      notes:      el('problemNotes').value.trim() || null,
+    };
+
     const res = await fetch(`${API_BASE}/api/problems`, {
       method:  'POST',
       headers: authHeaders(),
       body:    JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error('Failed to add problem');
+    if (res.status === 401) { handleAuthExpiry(); return; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to add problem (HTTP ${res.status})`);
+    }
+
     closeAddProblemModal();
-    await loadProblems(user.id);
+    // Repaint the list and the stat tiles. This used to call loadProblems()
+    // and throw the result away, so a newly added problem only showed up
+    // after a manual page refresh.
+    await refreshOverview();
   } catch (err) {
     alert('Error: ' + err.message);
   } finally {
     btn.textContent = 'Add Problem';
     btn.disabled = false;
   }
+}
+
+/** Reloads problems + analytics and repaints the overview tab. */
+async function refreshOverview() {
+  const user = getCachedUser();
+  if (!user) return;
+  const [problems, analytics] = await Promise.all([
+    loadProblems(user.id),
+    loadAnalytics(user.id),
+  ]);
+  renderProblems(problems);
+  if (analytics) renderAnalytics(analytics);
 }
 
 // ── API calls ─────────────────────────────────────────────────────
@@ -229,19 +296,22 @@ async function loadMe() {
     const res = await fetch(`${API_BASE}/api/users/me`, { headers: authHeaders() });
     log(`Profile response status: ${res.status}`);
 
-    // If the resource-server rejects the Google ID token (JWT audience/issuer mismatch),
-    // fall back to cached user — DO NOT signOut(), that creates an infinite loop.
+    // A 401 here means the Google ID token expired (they last ~1 hour) or was
+    // issued for a different client ID.
     if (res.status === 401) {
-      log('401 from /api/users/me — using cached profile (token validation mismatch)', true);
+      log('401 from /api/users/me — session expired, re-authenticating', true);
+      if (handleAuthExpiry()) return null;
       return getCachedUser();
     }
     if (!res.ok) {
       log(`API error: ${res.status} ${res.statusText}`, true);
       return getCachedUser(); // Degrade gracefully instead of looping
     }
+    sessionStorage.removeItem(REAUTH_FLAG); // token works; reset the loop guard
     return res.json();
   } catch (err) {
     log(`Network or parser error: ${err.message} — using cached profile`, true);
+    showSessionBanner('Could not reach the server. Showing your last cached data.');
     return getCachedUser(); // Network failure: still show dashboard with cached data
   }
 }
@@ -294,52 +364,78 @@ async function loadMyAnalytics() {
 
 // ── Code Portals ───────────────────────────────────────────────────
 
-async function fetchLeetcodeStats() {
+// The original provider (leetcode-stats-api.herokuapp.com) went away with
+// Heroku's free tier and had been returning 503 for every request. This mirror
+// serves the same JSON shape.
+const LEETCODE_STATS_API = 'https://leetcode-stats-api.vercel.app';
+
+/**
+ * Portal sync buttons are wired through inline onclick, so the event object was
+ * being read off the implicit global. Passing it in explicitly keeps the button
+ * reference valid and lets these be called from anywhere.
+ */
+async function fetchLeetcodeStats(event) {
   const user = el('leetcodeUser').value.trim();
   if (!user) {
     alert('Please enter a LeetCode username');
     return;
   }
-  const btn = event.currentTarget;
-  btn.textContent = 'Syncing...';
-  try {
-    const res = await fetch(`https://leetcode-stats-api.herokuapp.com/${user}`);
-    const data = await res.json();
-    if (data.status === 'success') {
-      el('lcSolved').textContent = data.totalSolved || 0;
-      el('lcRank').textContent = data.ranking || '—';
-      el('leetcodeStats').style.display = 'flex';
-      localStorage.setItem('dpt_lc_user', user);
-    } else {
-      alert('LeetCode user not found or API error.');
+  const btn = event?.currentTarget || el('lcSyncBtn');
+  await withSyncingButton(btn, async () => {
+    const res = await fetch(`${LEETCODE_STATS_API}/${encodeURIComponent(user)}`);
+    const data = await res.json().catch(() => null);
+
+    // The mirror reports an unknown user as a GraphQL `errors` array rather
+    // than a status field, so check for the payload we actually need.
+    if (!res.ok || !data || data.errors || typeof data.totalSolved !== 'number') {
+      alert(`Could not load LeetCode stats for "${user}". Check the username is correct.`);
+      return;
     }
-  } catch (e) {
-    alert('Error fetching LeetCode stats: ' + e.message);
-  } finally {
-    btn.textContent = 'Sync Stats';
-  }
+
+    el('lcSolved').textContent = data.totalSolved;
+    el('lcRank').textContent   = data.ranking ? data.ranking.toLocaleString() : '—';
+    el('leetcodeStats').style.display = 'flex';
+    localStorage.setItem('dpt_lc_user', user);
+  }, 'LeetCode');
 }
 
-async function fetchGithubStats() {
+async function fetchGithubStats(event) {
   const user = el('githubUser').value.trim();
   if (!user) {
     alert('Please enter a GitHub username');
     return;
   }
-  const btn = event.currentTarget;
-  btn.textContent = 'Syncing...';
-  try {
-    const res = await fetch(`https://api.github.com/users/${user}`);
-    if (!res.ok) throw new Error('User not found');
+  const btn = event?.currentTarget || el('ghSyncBtn');
+  await withSyncingButton(btn, async () => {
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(user)}`);
+    if (res.status === 404) {
+      alert(`GitHub user "${user}" not found.`);
+      return;
+    }
+    if (res.status === 403) {
+      alert('GitHub rate limit reached. Try again in a few minutes.');
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const data = await res.json();
-    el('ghRepos').textContent = data.public_repos || 0;
-    el('ghFollowers').textContent = data.followers || 0;
+    el('ghRepos').textContent     = data.public_repos ?? 0;
+    el('ghFollowers').textContent = data.followers ?? 0;
     el('githubStats').style.display = 'flex';
     localStorage.setItem('dpt_gh_user', user);
+  }, 'GitHub');
+}
+
+/** Runs `work` with the button showing a busy label, restoring it either way. */
+async function withSyncingButton(btn, work, label) {
+  const original = btn ? btn.textContent : null;
+  if (btn) { btn.textContent = 'Syncing...'; btn.disabled = true; }
+  try {
+    await work();
   } catch (e) {
-    alert('Error fetching GitHub stats: ' + e.message);
+    alert(`Could not reach the ${label} API: ${e.message}`);
   } finally {
-    btn.textContent = 'Sync Stats';
+    if (btn) { btn.textContent = original || 'Sync Stats'; btn.disabled = false; }
   }
 }
 
@@ -433,72 +529,186 @@ function selectSysTopic(topicId) {
 }
 
 // ── Knowledge Web ──────────────────────────────────────────────────
+//
+// The map is stored server-side (/api/knowledge), so it follows the user
+// between browsers and devices. It previously lived only in localStorage —
+// tied to one browser profile, and one cache-clear away from being lost.
+// Any map still sitting in localStorage is migrated up on first load.
 
 let network = null;
 let nodes   = null;
 let edges   = null;
-let _nodeIdCounter = 10;
 let _selectedNodeId = null;
+let _categories = [];
+
+// Legacy localStorage keys: read once for migration, then left alone.
 const KW_STORAGE_KEY  = 'dpt_knowledge_web';
 const KW_CAT_KEY      = 'dpt_kw_categories';
+const KW_MIGRATED_KEY = 'dpt_kw_migrated';
 
-// ── Category color palette (rotated for custom categories) ──────────
-const CAT_PALETTE = [
-  { bg: '#1e3a5f', border: '#1d4ed8', font: '#93c5fd' }, // blue
-  { bg: '#3b1f5e', border: '#7c3aed', font: '#c4b5fd' }, // purple
-  { bg: '#1a3a2a', border: '#059669', font: '#6ee7b7' }, // teal
-  { bg: '#3d1f1f', border: '#dc2626', font: '#fca5a5' }, // red
-  { bg: '#3a2e10', border: '#d97706', font: '#fcd34d' }, // amber
-  { bg: '#1a2a3a', border: '#0891b2', font: '#67e8f9' }, // cyan
-  { bg: '#2e1a3a', border: '#db2777', font: '#f9a8d4' }, // pink
-  { bg: '#1a3a1a', border: '#16a34a', font: '#86efac' }, // green
-];
+const ROOT_STYLE = {
+  shape: 'ellipse',
+  size: 28,
+  color: {
+    background: '#6366f1', border: '#4f46e5',
+    highlight: { background: '#7c3aed', border: '#6d28d9' },
+  },
+  font: { color: 'white', size: 14, bold: true },
+};
 
-// Default built-in categories
-const DEFAULT_CATS = [
-  { id: 'youtube',  label: '🎥 Deep Dive',     icon: '🎥', pillarId: 4, bg: '#4c1d95', border: '#6d28d9', font: '#ddd6fe' },
-  { id: 'insta',    label: '⚡ Quick Logic',    icon: '⚡', pillarId: 3, bg: '#022c22', border: '#047857', font: '#a7f3d0' },
-  { id: 'article',  label: '📄 Article',        icon: '📄', pillarId: 5, bg: '#3f3f46', border: '#71717a', font: '#d4d4d8' },
-  { id: 'system',   label: '🏗️ System Design',  icon: '🏗️', pillarId: 2, bg: '#1e1b4b', border: '#3730a3', font: '#a5b4fc' },
-];
+const FALLBACK_COLORS = { bg: '#1e1b4b', border: '#3730a3', font: '#a5b4fc' };
 
-let _categories = [];  // will be populated in initCategories()
-
-function saveCategories() {
-  // Only save custom (non-default) ones
-  const custom = _categories.filter(c => !DEFAULT_CATS.find(d => d.id === c.id));
-  try { localStorage.setItem(KW_CAT_KEY, JSON.stringify(custom)); } catch(e) {}
+function categoryByKey(key) {
+  return _categories.find(c => c.categoryKey === key) || null;
 }
 
-function initCategories() {
-  _categories = [...DEFAULT_CATS];
+/** Converts a stored node into the shape vis-network expects. */
+function toVisNode(node) {
+  const label = (node.icon ? node.icon + ' ' : '') + node.label;
+
+  if (node.kind === 'ROOT') {
+    // kind must survive onto the vis node: the click handler and the delete
+    // guard both read it to keep the root from being removed.
+    return { id: node.nodeKey, label, kind: node.kind, ...ROOT_STYLE };
+  }
+
+  const cat = categoryByKey(node.categoryKey);
+  const bg     = (cat && cat.colorBg)     || FALLBACK_COLORS.bg;
+  const border = (cat && cat.colorBorder) || FALLBACK_COLORS.border;
+  const font   = (cat && cat.colorFont)   || FALLBACK_COLORS.font;
+
+  return {
+    id: node.nodeKey,
+    label,
+    shape: 'box',
+    color: { background: bg, border },
+    font: { color: font, size: node.kind === 'PILLAR' ? 13 : 12 },
+    url: node.url || undefined,
+    kind: node.kind,
+    desc: cat ? node.label + ' — ' + cat.label : node.label,
+  };
+}
+
+// ── API ────────────────────────────────────────────────────────────
+
+async function kwFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE}/api/knowledge${path}`, {
+    headers: authHeaders(),
+    ...options,
+  });
+  if (res.status === 401) {
+    handleAuthExpiry();
+    throw new Error('Your session expired. Please sign in again.');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Request failed (HTTP ${res.status})`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+/**
+ * Hands any pre-existing localStorage map to the server.
+ *
+ * The server ignores it once the stored map has real content, so a second
+ * device carrying a stale copy cannot overwrite work done elsewhere.
+ */
+async function migrateLocalGraph() {
+  if (localStorage.getItem(KW_MIGRATED_KEY)) return null;
+
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(KW_STORAGE_KEY) || 'null'); } catch (_) {}
+  if (!stored || !Array.isArray(stored.nodes) || stored.nodes.length === 0) {
+    localStorage.setItem(KW_MIGRATED_KEY, '1');
+    return null;
+  }
+
+  let localCats = [];
+  try { localCats = JSON.parse(localStorage.getItem(KW_CAT_KEY) || '[]'); } catch (_) {}
+
+  // The old format kept colours on each node and category ids on a separate
+  // list, with numeric vis ids. Flatten it into what the API accepts.
+  const catByPillar = new Map();
+  const categories = localCats.map(c => {
+    if (c.pillarId != null) catByPillar.set(String(c.pillarId), c.id);
+    return {
+      categoryKey: c.id,
+      label: (c.label || '').replace(/^\S+\s/, '') || c.id,
+      icon: c.icon || '📌',
+      pillarNodeKey: String(c.pillarId),
+      colorBg: c.bg, colorBorder: c.border, colorFont: c.font,
+      builtIn: false,
+    };
+  });
+
+  const edgeList = (stored.edges || [])
+    .filter(e => e && e.from != null && e.to != null)
+    .map(e => ({ from: String(e.from), to: String(e.to) }));
+
+  // A node's category is whichever pillar points at it.
+  const parentOf = new Map();
+  edgeList.forEach(e => parentOf.set(e.to, e.from));
+
+  const nodeList = stored.nodes.filter(n => n && n.id != null).map(n => {
+    const key = String(n.id);
+    const rawLabel = n.label || '';
+    const iconMatch = rawLabel.match(/^(\S+)\s+(.*)$/);
+    const icon  = iconMatch ? iconMatch[1] : null;
+    const label = iconMatch ? iconMatch[2] : rawLabel;
+
+    let kind = 'RESOURCE';
+    if (n.shape === 'ellipse' || key === '1') kind = 'ROOT';
+    else if (catByPillar.has(key) || !parentOf.has(key)) kind = 'PILLAR';
+
+    return {
+      nodeKey: key,
+      label: label || key,
+      icon,
+      url: n.url || null,
+      categoryKey: catByPillar.get(parentOf.get(key)) || catByPillar.get(key) || null,
+      kind,
+      notes: n.desc || null,
+    };
+  });
+
   try {
-    const raw = localStorage.getItem(KW_CAT_KEY);
-    if (raw) {
-      const custom = JSON.parse(raw);
-      _categories.push(...custom);
-    }
-  } catch(e) {}
-  renderCategoryPills();
+    const result = await kwFetch('/import', {
+      method: 'POST',
+      body: JSON.stringify({ nodes: nodeList, edges: edgeList, categories }),
+    });
+    localStorage.setItem(KW_MIGRATED_KEY, '1');
+    log(result.imported
+      ? `Migrated ${nodeList.length} knowledge nodes from this browser to your account.`
+      : 'Your account already has a knowledge map; this browser copy was left alone.');
+    return result.graph;
+  } catch (err) {
+    // Leave the flag unset so it is retried next time.
+    log('Knowledge migration failed: ' + err.message, true);
+    return null;
+  }
 }
+
+// ── Categories ─────────────────────────────────────────────────────
 
 function renderCategoryPills() {
   const container = document.getElementById('kwCategoryPills');
   if (!container) return;
+
   const activePill = document.querySelector('.kap-pill.active');
-  const activeVal  = activePill ? activePill.dataset.value : (_categories[0]?.id || 'youtube');
+  const activeVal  = activePill
+    ? activePill.dataset.value
+    : (_categories[0] ? _categories[0].categoryKey : null);
 
   container.innerHTML = '';
-  _categories.forEach((cat, i) => {
+  _categories.forEach(cat => {
     const btn = document.createElement('button');
-    btn.className = 'kap-pill' + (cat.id === activeVal ? ' active' : '');
-    btn.dataset.value = cat.id;
-    btn.textContent = cat.label;
+    btn.className = 'kap-pill' + (cat.categoryKey === activeVal ? ' active' : '');
+    btn.dataset.value = cat.categoryKey;
+    btn.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.label;
     btn.onclick = () => selectKapPill(btn);
     container.appendChild(btn);
   });
 
-  // "+ New" dashed pill at end
   const addBtn = document.createElement('button');
   addBtn.className = 'kap-pill--add';
   addBtn.textContent = '+ New';
@@ -520,117 +730,63 @@ function cancelNewCategory() {
   document.getElementById('kapNewCatInput').value = '';
 }
 
-function confirmNewCategory() {
+async function confirmNewCategory() {
   const input = document.getElementById('kapNewCatInput');
   const name  = (input.value || '').trim();
   if (!name) { input.focus(); return; }
 
-  // Prevent duplicate
-  if (_categories.find(c => c.label.toLowerCase().includes(name.toLowerCase()))) {
-    input.select(); return;
-  }
-
-  // Pick colors from palette (cycle)
-  const palette = CAT_PALETTE[(_categories.length - DEFAULT_CATS.length) % CAT_PALETTE.length];
-
-  // Create a new pillar node on the graph for this category
-  const newPillarId = ++_nodeIdCounter;
-  const icon = '📌';
-  const cat = {
-    id:       'custom_' + Date.now(),
-    label:    icon + ' ' + name,
-    icon,
-    pillarId: newPillarId,
-    bg:       palette.bg,
-    border:   palette.border,
-    font:     palette.font,
-  };
-
-  _categories.push(cat);
-
-  // Add pillar node if graph is initialized
-  if (nodes) {
-    nodes.add({
-      id:    newPillarId,
-      label: icon + ' ' + name,
-      shape: 'box',
-      color: { background: palette.bg, border: palette.border },
-      font:  { color: palette.font, size: 13 },
+  try {
+    const cat = await kwFetch('/categories', {
+      method: 'POST',
+      body: JSON.stringify({ label: name, icon: '📌' }),
     });
-    edges.add({ from: 1, to: newPillarId });
-    saveKnowledgeGraph();
+
+    _categories.push(cat);
+    renderCategoryPills();
+    renderPortalCategorySelects();
+
+    // The server created this category's pillar node too — pull the graph back
+    // so the new branch appears without a page reload.
+    await reloadGraph();
+
+    const newPill = document.querySelector(`.kap-pill[data-value="${cat.categoryKey}"]`);
+    if (newPill) selectKapPill(newPill);
+
+    cancelNewCategory();
+  } catch (err) {
+    alert('Could not add category: ' + err.message);
+    input.select();
+  }
+}
+
+function selectKapPill(btn) {
+  document.querySelectorAll('.kap-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── Graph ──────────────────────────────────────────────────────────
+
+/** Paints a GraphView into the vis DataSets, creating the network if needed. */
+function applyGraph(graph) {
+  _categories = graph.categories || [];
+  renderCategoryPills();
+  renderPortalCategorySelects();
+
+  const visNodes = (graph.nodes || []).map(toVisNode);
+  const visEdges = (graph.edges || []).map(e => ({ from: e.from, to: e.to }));
+
+  if (nodes && edges) {
+    nodes.clear(); edges.clear();
+    nodes.add(visNodes); edges.add(visEdges);
+    return;
   }
 
-  saveCategories();
-  renderCategoryPills();
-
-  // Auto-select the new pill
-  setTimeout(() => {
-    const newPill = document.querySelector(`.kap-pill[data-value="${cat.id}"]`);
-    if (newPill) selectKapPill(newPill);
-  }, 0);
-
-  cancelNewCategory();
-}
-
-function saveKnowledgeGraph() {
-  try {
-    const data = {
-      nodes: nodes.get(),
-      edges: edges.get(),
-      counter: _nodeIdCounter
-    };
-    localStorage.setItem(KW_STORAGE_KEY, JSON.stringify(data));
-  } catch(e) { console.warn('Could not save knowledge graph:', e); }
-}
-
-function loadSavedGraph() {
-  try {
-    const raw = localStorage.getItem(KW_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch(e) { return null; }
-}
-
-function initKnowledgeWeb() {
-  if (network) return; // already initialized
-
-  const seedNodes = [
-    // Root
-    { id: 1, label: '\uD83E\uDDE0 My Brain', shape: 'ellipse', size: 28,
-      color: { background: '#6366f1', border: '#4f46e5', highlight: { background: '#7c3aed', border: '#6d28d9' } },
-      font: { color: 'white', size: 14, bold: true } },
-    // Pillars
-    { id: 2, label: '\uD83C\uDFD7 System Design', shape: 'box',
-      color: { background: '#312e81', border: '#4338ca' }, font: { color: '#c7d2fe', size: 13 } },
-    { id: 3, label: '\uD83D\uDCCA Algorithms', shape: 'box',
-      color: { background: '#064e3b', border: '#047857' }, font: { color: '#a7f3d0', size: 13 } },
-    { id: 4, label: '\uD83D\uDCFA Deep Dives', shape: 'box',
-      color: { background: '#4c1d95', border: '#6d28d9' }, font: { color: '#ddd6fe', size: 13 } },
-    { id: 5, label: '\uD83D\uDCC4 Articles', shape: 'box',
-      color: { background: '#3f3f46', border: '#71717a' }, font: { color: '#d4d4d8', size: 13 } },
-    // Sample leaves
-    { id: 6, label: '\u26A1 Load Balancing', shape: 'box', size: 14,
-      color: { background: '#1e1b4b', border: '#3730a3' }, font: { color: '#a5b4fc', size: 12 } },
-    { id: 7, label: '\uD83D\uDDC4 CAP Theorem', shape: 'box', size: 14,
-      color: { background: '#1e1b4b', border: '#3730a3' }, font: { color: '#a5b4fc', size: 12 } },
-  ];
-
-  const seedEdges = [
-    { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 },
-    { from: 2, to: 6 }, { from: 2, to: 7 }
-  ];
-
-  // ── Restore from localStorage, or fall back to seed data ──
-  const saved = loadSavedGraph();
-  const initialNodes = saved ? saved.nodes : seedNodes;
-  const initialEdges = saved ? saved.edges : seedEdges;
-  if (saved) _nodeIdCounter = saved.counter || 10;
-
-  nodes = new vis.DataSet(initialNodes);
-  edges = new vis.DataSet(initialEdges);
+  nodes = new vis.DataSet(visNodes);
+  edges = new vis.DataSet(visEdges);
 
   const container = document.getElementById('knowledgeNetwork');
+  if (!container) return;
+
   const options = {
     nodes: {
       shadow: { enabled: true, size: 8, x: 2, y: 2 },
@@ -641,24 +797,24 @@ function initKnowledgeWeb() {
       width: 1.5,
       smooth: { type: 'cubicBezier', forceDirection: 'none', roundness: 0.4 },
       color: { color: 'rgba(255,255,255,0.15)', highlight: '#6366f1', hover: '#a5b4fc' },
-      arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } },
     },
     physics: {
       enabled: true,
       stabilization: { iterations: 120 },
-      barnesHut: { springLength: 180, springConstant: 0.04, damping: 0.2 }
+      barnesHut: { springLength: 180, springConstant: 0.04, damping: 0.2 },
     },
-    interaction: { hover: true, tooltipDelay: 150, zoomView: true, dragView: true }
+    interaction: { hover: true, tooltipDelay: 150, zoomView: true, dragView: true },
   };
 
   network = new vis.Network(container, { nodes, edges }, options);
 
-  network.on('click', function(params) {
+  network.on('click', function (params) {
     const deleteBtn = document.getElementById('deleteNodeBtn');
     if (params.nodes.length > 0) {
       _selectedNodeId = params.nodes[0];
       const nodeData = nodes.get(_selectedNodeId);
-      if (deleteBtn) deleteBtn.disabled = false;
+      if (deleteBtn) deleteBtn.disabled = nodeData.kind === 'ROOT';
       if (nodeData.url) {
         openKwPanel(nodeData);
       } else {
@@ -672,7 +828,78 @@ function initKnowledgeWeb() {
   });
 }
 
-/* Convert a regular YouTube watch URL to an embed URL */
+async function reloadGraph() {
+  const graph = await kwFetch('');
+  applyGraph(graph);
+  return graph;
+}
+
+/** Called when the Knowledge tab is first opened. */
+async function initKnowledgeWeb() {
+  if (network) return;
+  try {
+    const migrated = await migrateLocalGraph();
+    applyGraph(migrated || await kwFetch(''));
+  } catch (err) {
+    log('Could not load the knowledge map: ' + err.message, true);
+    const container = document.getElementById('knowledgeNetwork');
+    if (container && !network) {
+      container.innerHTML =
+        `<p class="qv-placeholder" style="padding:24px;">Could not load your knowledge map.<br>` +
+        `${escapeHtml(err.message)}</p>`;
+    }
+  }
+}
+
+/** Loads the category pills without building the graph, for a first paint. */
+async function initCategories() {
+  if (_categories.length) { renderCategoryPills(); return; }
+  try {
+    const graph = await kwFetch('');
+    _categories = graph.categories || [];
+    renderCategoryPills();
+    renderPortalCategorySelects();
+  } catch (_) {
+    // The graph loader will surface the error; pills can wait.
+  }
+}
+
+/*
+ * Hosts that refuse to be framed, so the panel can go straight to its
+ * "open externally" state instead of showing Chrome's "refused to connect"
+ * for several seconds first.
+ *
+ * Verified response headers:
+ *   algomaster.io    X-Frame-Options: SAMEORIGIN
+ *   takeuforward.org Content-Security-Policy: frame-ancestors 'self'
+ * The rest are long-standing, well-known cases.
+ */
+const NO_EMBED_HOSTS = [
+  'algomaster.io',
+  'takeuforward.org',
+  'instagram.com',
+  'leetcode.com',
+  'github.com',
+  'stackoverflow.com',
+  'medium.com',
+  'linkedin.com',
+  'x.com',
+  'twitter.com',
+  'facebook.com',
+  'reddit.com',
+  'geeksforgeeks.org',
+  'hackerrank.com',
+  'codeforces.com',
+];
+
+/** True when the host (or a parent domain of it) is known to block framing. */
+function blocksEmbedding(hostname) {
+  const host = hostname.toLowerCase().replace(/^www\./, '');
+  return NO_EMBED_HOSTS.some(blocked => host === blocked || host.endsWith('.' + blocked));
+}
+
+/* Convert a regular YouTube watch URL to an embed URL.
+   Returns null when the target cannot be framed at all. */
 function toEmbedUrl(url) {
   const origin = encodeURIComponent(window.location.origin || 'https://localhost');
   try {
@@ -687,8 +914,7 @@ function toEmbedUrl(url) {
       const id = u.pathname.slice(1).split('?')[0];
       return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0&origin=${origin}&enablejsapi=1`;
     }
-    // Instagram — blocks iframes
-    if (u.hostname.includes('instagram.com')) return null;
+    if (blocksEmbedding(u.hostname)) return null;
   } catch(_) {}
   return url; // articles / other URLs — try directly
 }
@@ -718,19 +944,28 @@ function openKwPanel(nodeData) {
   panel.classList.add('open');
 
   if (!embedUrl) {
-    // Site known to block iframes (Instagram etc)
+    // Known to block framing — say so rather than letting the browser show a
+    // bare "refused to connect".
     loader.style.display  = 'none';
     blocked.style.display = 'flex';
+    const note = document.getElementById('kwpBlockedNote');
+    if (note) {
+      let host = nodeData.url;
+      try { host = new URL(nodeData.url).hostname.replace(/^www\./, ''); } catch (_) {}
+      note.textContent = `${host} does not allow being embedded in other sites, so it opens in a new tab.`;
+    }
     return;
   }
 
-  // timeout to detect blocked iframes (no load event fires)
+  // For hosts we have not classified, a blocked frame simply never fires
+  // `load`. Four seconds is long enough for a slow page and short enough that
+  // a blocked one does not sit on Chrome's error for ages.
   let blockTimer = setTimeout(() => {
     if (!iframe.classList.contains('loaded')) {
       loader.style.display  = 'none';
       blocked.style.display = 'flex';
     }
-  }, 8000);
+  }, 4000);
 
   iframe.onload = () => {
     clearTimeout(blockTimer);
@@ -789,7 +1024,7 @@ async function toggleKwPiP() {
       pipWin.document.body.innerHTML = `
         <div class="pip-shell">
           <div class="pip-bar">
-            <span>\uD83C\uDFA5 ${title}</span>
+            <span>\uD83C\uDFA5 ${escapeHtml(title)}</span>
           </div>
           <iframe src="${src}" frameborder="0" referrerpolicy="origin"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -809,6 +1044,7 @@ async function toggleKwPiP() {
 }
 
 function _openKwPopup(src, title) {
+  const safeTitle = escapeHtml(title);
   const pw = 560, ph = 340;
   const left = Math.max(0, screen.width  - pw - 20);
   const top  = Math.max(0, screen.height - ph - 60);
@@ -817,7 +1053,7 @@ function _openKwPopup(src, title) {
     `toolbar=0,menubar=0,location=0,status=0,resizable=1`);
   if (!popup) { alert('Pop-up blocked. Please allow pop-ups for this site.'); return; }
   popup.document.write(`<!DOCTYPE html>
-<html><head><title>${title}</title><style>
+<html><head><title>${safeTitle}</title><style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#000;display:flex;flex-direction:column;height:100vh;font-family:system-ui,sans-serif}
   .bar{padding:6px 10px;background:rgba(10,12,22,0.95);border-bottom:1px solid rgba(255,255,255,0.07);
@@ -825,69 +1061,193 @@ function _openKwPopup(src, title) {
   iframe{flex:1;width:100%;border:none}
 </style></head>
 <body>
-  <div class="bar">\uD83C\uDFA5 ${title}</div>
+  <div class="bar">\uD83C\uDFA5 ${safeTitle}</div>
   <iframe src="${src}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
     allowfullscreen></iframe>
 </body></html>`);
   popup.document.close();
 }
 
-function selectKapPill(btn) {
-  document.querySelectorAll('.kap-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function deleteSelectedNode() {
+async function deleteSelectedNode() {
   if (_selectedNodeId === null) return;
-  if (_selectedNodeId === 1) {
-    alert('Cannot delete the root node \uD83E\uDDE0 My Brain.');
+
+  const nodeData = nodes.get(_selectedNodeId);
+  if (!nodeData) return;
+
+  if (nodeData.kind === 'ROOT') {
+    alert('The root node cannot be deleted.');
     return;
   }
-  const connectedEdges = network.getConnectedEdges(_selectedNodeId);
-  edges.remove(connectedEdges);
-  nodes.remove(_selectedNodeId);
-  _selectedNodeId = null;
-  document.getElementById('deleteNodeBtn').disabled = true;
-  // close iframe drawer if it was open
-  closeKwPanel();
-  saveKnowledgeGraph(); // persist after delete
+
+  const isPillar = nodeData.kind === 'PILLAR';
+  const question = isPillar
+    ? `Delete the "${nodeData.label}" branch and everything filed under it?`
+    : `Delete "${nodeData.label}" from your knowledge map?`;
+  if (!confirm(question)) return;
+
+  const btn = document.getElementById('deleteNodeBtn');
+  if (btn) btn.disabled = true;
+
+  try {
+    await kwFetch(`/nodes/${encodeURIComponent(_selectedNodeId)}`, { method: 'DELETE' });
+    _selectedNodeId = null;
+    closeKwPanel();
+    // Deleting a branch also removes its category and children, so take the
+    // server's version rather than guessing at the local effect.
+    await reloadGraph();
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+    if (btn) btn.disabled = false;
+  }
 }
 
-function addKnowledgeNode() {
-  if (!network) {
-    alert('Please open the Knowledge Web tab first to initialize the graph.');
+async function addKnowledgeNode() {
+  const linkEl  = document.getElementById('kwLinkInput');
+  const labelEl = document.getElementById('kwLabelInput');
+  const link  = linkEl.value.trim();
+  const label = labelEl.value.trim();
+
+  if (!label) {
+    alert('Please give this node a label.');
+    labelEl.focus();
     return;
   }
-  const link = document.getElementById('kwLinkInput').value.trim();
-  const label = document.getElementById('kwLabelInput').value.trim();
-  // read from pill buttons instead of select
+
   const activePill = document.querySelector('.kap-pill.active');
-  const cat = activePill ? activePill.dataset.value : 'system';
+  const categoryKey = activePill
+    ? activePill.dataset.value
+    : (_categories[0] && _categories[0].categoryKey);
 
-  if (!link || !label) {
-    alert('Please provide both a link and a label.');
+  if (!categoryKey) {
+    alert('Open the Knowledge Web tab first so your categories can load.');
     return;
   }
 
-  // Look up category from dynamic registry
-  const catDef = _categories.find(c => c.id === cat) || _categories[0];
-  const icon = catDef.icon || '📌';
-  const newId = ++_nodeIdCounter;
+  const btn = document.querySelector('.kap-submit');
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
 
-  nodes.add({
-    id: newId,
-    label: icon + ' ' + label,
-    shape: 'box',
-    color: { background: catDef.bg, border: catDef.border },
-    font: { color: catDef.font, size: 12 },
-    url: link,
-    desc: label + ' — ' + catDef.label
+  try {
+    const node = await kwFetch('/nodes', {
+      method: 'POST',
+      body: JSON.stringify({ label, url: link || null, categoryKey }),
+    });
+
+    // Splice the new node in rather than refetching the whole map, so the
+    // graph does not visibly re-stabilise on every add.
+    if (nodes && edges) {
+      nodes.add(toVisNode(node));
+      const cat = categoryByKey(node.categoryKey);
+      if (cat && cat.pillarNodeKey) {
+        edges.add({ from: cat.pillarNodeKey, to: node.nodeKey });
+      }
+    }
+
+    linkEl.value = '';
+    labelEl.value = '';
+    labelEl.focus();
+  } catch (err) {
+    alert('Could not add node: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      if (originalHtml !== null) btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+
+// ── Learning portals → Knowledge Web ───────────────────────────────
+//
+// AlgoMaster and takeUforward both refuse to be framed
+// (X-Frame-Options: SAMEORIGIN, and CSP frame-ancestors 'self'), so the cards
+// deep-link out. What we can do in-app is let a portal be filed straight into
+// the user's knowledge map.
+
+/** Fills every portal card's category picker from the loaded categories. */
+function renderPortalCategorySelects() {
+  const selects = document.querySelectorAll('.portal-cat-select');
+  if (!selects.length) return;
+
+  selects.forEach(sel => {
+    const previous = sel.value;
+    sel.innerHTML = '';
+
+    if (!_categories.length) {
+      const opt = document.createElement('option');
+      opt.textContent = 'Loading categories…';
+      opt.value = '';
+      sel.appendChild(opt);
+      sel.disabled = true;
+      return;
+    }
+
+    _categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.categoryKey;
+      opt.textContent = (cat.icon ? cat.icon + ' ' : '') + cat.label;
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+    if (previous && _categories.some(c => c.categoryKey === previous)) {
+      sel.value = previous;
+    }
   });
-  edges.add({ from: catDef.pillarId, to: newId });
+}
 
-  document.getElementById('kwLinkInput').value = '';
-  document.getElementById('kwLabelInput').value = '';
-  saveKnowledgeGraph(); // persist after add
+/** Saves a portal (or one of its sections) as a node on the knowledge map. */
+async function savePortalToKnowledge(btn, label, url) {
+  const card   = btn.closest('.portal-card');
+  const select = card.querySelector('.portal-cat-select');
+  const status = card.querySelector('.portal-save-status');
+
+  const show = (msg, ok) => {
+    status.textContent = msg;
+    status.className = 'portal-save-status ' + (ok ? 'ok' : 'fail');
+    status.hidden = false;
+  };
+
+  if (!_categories.length) {
+    // The categories come from the same endpoint as the map itself.
+    await initCategories();
+    renderPortalCategorySelects();
+  }
+
+  const categoryKey = select.value || (_categories[0] && _categories[0].categoryKey);
+  if (!categoryKey) {
+    show('Could not load your categories. Open the Knowledge Web tab and try again.', false);
+    return;
+  }
+
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const node = await kwFetch('/nodes', {
+      method: 'POST',
+      body: JSON.stringify({ label, url, categoryKey }),
+    });
+
+    // Keep an already-built graph in step, so switching tabs shows it without
+    // a refetch. If the tab has never been opened there is nothing to update.
+    if (nodes && edges) {
+      nodes.add(toVisNode(node));
+      const cat = categoryByKey(node.categoryKey);
+      if (cat && cat.pillarNodeKey) {
+        edges.add({ from: cat.pillarNodeKey, to: node.nodeKey });
+      }
+    }
+
+    const catLabel = (categoryByKey(categoryKey) || {}).label || 'your map';
+    show(`Saved "${label}" under ${catLabel}.`, true);
+    setTimeout(() => { status.hidden = true; }, 4000);
+  } catch (err) {
+    show('Could not save: ' + err.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────
@@ -927,12 +1287,13 @@ async function init() {
     document.querySelectorAll('.dash-tab').forEach(btn => {
       btn.addEventListener('click', function() {
         if (this.dataset.tab === 'knowledge') {
-          initCategories();          // render pills first
-          setTimeout(initKnowledgeWeb, 100);
+          // Loads categories and the stored map together; safe to call again.
+          initKnowledgeWeb();
         }
       });
     });
-    // Also render pills immediately in case tab is already active
+    // Populate the category pills up front so the Add Node form is usable
+    // the moment the tab is opened.
     initCategories();
 
     // Load portal usernames if previously saved locally

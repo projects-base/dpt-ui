@@ -107,7 +107,10 @@ body.dashboard-page {
 }
 
 .right-sidebar {
-  width: 340px;
+  /* Driven by --ai-width so the panel can be dragged wider for mock
+     interviews. Set on :root by the resize handle and restored from
+     localStorage on load. */
+  width: var(--ai-width, 340px);
   background: rgba(13, 15, 26, 0.8);
   border-left: 1px solid rgba(255, 255, 255, 0.04);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.03);
@@ -124,12 +127,13 @@ body.dashboard-page {
   width: 56px;
 }
 
-/* The inner div stays at full 340px so content clips cleanly */
+/* The inner div matches the panel width so content clips cleanly while
+   collapsing, and grows with it while resizing. */
 .right-sidebar-inner {
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 340px;
+  width: var(--ai-width, 340px);
 }
 
 /* ── Right Sidebar Header ── */
@@ -1125,4 +1129,197 @@ body.dashboard-page {
   .user-block { margin: 0; }
   .btn-logout { width: auto; padding: 6px 12px; }
   .main-content { padding: 20px 16px; }
+}
+
+
+/* Shown when the Google ID token expires or the API is unreachable, so the
+   dashboard no longer sits there silently displaying stale cached data. */
+.session-banner {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  display: none;
+  padding: 10px 18px;
+  background: rgba(245, 158, 11, 0.14);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fcd34d;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* The sidebar carries the full product name so the dashboard matches the OAuth
+   consent screen. It is longer than the old "Daily Tracker" label, so let it
+   wrap onto two lines inside the fixed sidebar width instead of being clipped. */
+.sidebar:not(.collapsed) .brand-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  font-size: 0.92rem;
+}
+
+/* ── Learning portal cards ─────────────────────────────────────────
+   AlgoMaster and takeUforward cannot be embedded (they send
+   X-Frame-Options / CSP frame-ancestors), so these are deep-link
+   launchers plus a one-click save into the Knowledge Web. */
+.portal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+
+.portal-link {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 0.775rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.portal-link:hover {
+  background: rgba(139, 92, 246, 0.16);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.portal-save {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.portal-save .portal-cat-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+.portal-save .btn { flex-shrink: 0; }
+
+.portal-save-status {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.portal-save-status.ok   { color: var(--green); }
+.portal-save-status.fail { color: var(--red); }
+
+/* ── Resizable AI panel ────────────────────────────────────────────
+   A wider panel makes mock-interview conversations readable. The handle
+   sits on the panel's left edge; width persists per browser. */
+.ai-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 20;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: background 0.15s ease;
+  touch-action: none;
+}
+.ai-resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 38px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 0.15s ease;
+}
+.ai-resize-handle:hover::after,
+.ai-resize-handle:focus-visible::after { background: var(--accent-2); }
+.ai-resize-handle:hover  { background: rgba(139, 92, 246, 0.10); }
+.ai-resize-handle:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+
+/* No handle when the panel is collapsed to its icon rail. */
+.right-sidebar.collapsed .ai-resize-handle { display: none; }
+
+/* Kill the width transition mid-drag so the edge tracks the pointer. */
+.right-sidebar.resizing { transition: none; }
+.right-sidebar.resizing .right-sidebar-inner { transition: none; }
+body.ai-resizing { cursor: col-resize; user-select: none; }
+/* Stop the Sheet/knowledge iframes swallowing pointermove during a drag. */
+body.ai-resizing iframe { pointer-events: none; }
+
+.ai-header-actions { display: flex; align-items: center; gap: 2px; }
+
+/* Roomier chat once the panel is widened. */
+.right-sidebar.is-wide .gemini-msg { max-width: 88%; font-size: 0.9rem; }
+
+/* ── Custom Sheet empty state ──────────────────────────────────────
+   The embed area is deliberately tall, so an unconfigured sheet needs a
+   centred empty state rather than one stranded line of text. */
+.sheet-empty {
+  height: 100%;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 32px 24px;
+}
+.sheet-empty-icon { font-size: 40px; opacity: 0.65; margin-bottom: 4px; }
+.sheet-empty-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.98rem;
+  margin: 0;
+}
+.sheet-empty-msg {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  max-width: 380px;
+  margin: 0 0 14px;
+}
+
+/* ── Custom Sheet card ─────────────────────────────────────────────
+   Unlike .drive-card (padding: 24px) and .settings-card (padding: 32px),
+   this card had no padding at all, so its title and buttons sat flush
+   against the border while the embedded sheet ran under the rounded
+   corners. The header gets its own inset; the iframe still reaches the
+   edges, but is now clipped to the card's radius. */
+.sheet-card {
+  /* Was capped at 1000px, which left it cramped whenever the AI panel
+     was open. Let it use the space it has. */
+  max-width: 1280px;
+  height: calc(100vh - 190px);
+  min-height: 420px;
+}
+
+.sheet-card .qv-header {
+  padding: 16px 20px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.sheet-embed-wrap {
+  /* Iframes ignore a parent's border-radius unless the parent clips. */
+  overflow: hidden;
+  border-radius: 0 0 var(--radius-md, 14px) var(--radius-md, 14px);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* The sheet's own chrome starts at the very edge of the frame, so give it a
+   hairline separation from the card rather than letting the two collide. */
+.sheet-card .sheet-iframe { display: block; }
+
+@media (max-width: 900px) {
+  .sheet-card { height: calc(100vh - 160px); }
+  .sheet-card .qv-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
 }

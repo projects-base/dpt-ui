@@ -1,4 +1,4 @@
-# Daily Problem Tracker 🚀
+# Daily Problem Dynamic Tracker 🚀
 
 A premium SaaS platform designed for **MAANG Preparation and coding mastery**. This application tracks coding problem progress across platforms, analyzes code quality using Gemini AI, scales data storage through Supabase, and connects seamlessly into developer workflows via a companion Chrome Extension.
 
@@ -23,7 +23,7 @@ A premium SaaS platform designed for **MAANG Preparation and coding mastery**. T
 - **Deployment**: Configured for **Netlify** using static distribution rules with SPA-fallback routing (`netlify.toml`).
 
 ### Backend (API Service)
-- **Framework**: Spring Boot 3.4.0 (Java 21).
+- **Framework**: Spring Boot 4.0.5 (Java 21).
 - **Database**: PostgreSQL hosted on **Supabase**. Connected via IPv4 Pooling to ensure stable, active connections bypassing typical IPv6 latency issues.
 - **Data Access**: Spring Data JPA + Hibernate.
 - **Security**: Stateless architecture using Spring Security OAuth2 Resource Server to validate JWTs (Google ID tokens) and explicitly check audiences/issuers.
@@ -48,6 +48,20 @@ A `Dockerfile` maps the Spring application into a minimal Alpine footprint envir
 Relies on Supabase’s Postgres service. We use Transaction Pooling to rapidly accommodate backend connection requests triggered by extension rapid-fires and web traffic. All entity syncing utilizes seamless upserts.
 
 ---
+
+## 🔐 Publishing & Google OAuth Verification
+
+Google reviews the OAuth consent screen before the extension can be published to
+users outside your test list, and it checks that this site, the consent screen and
+the store listing all present the **same app name** and link a privacy policy on
+**this** domain.
+
+See **[OAUTH_VERIFICATION.md](OAUTH_VERIFICATION.md)** for the full checklist, the
+scope justifications to paste into the form, and the list of things that cause a
+rejection.
+
+The app name lives in exactly one place — `APP.name` in [`js/config.js`](js/config.js) —
+and is stamped into every page via `data-app-name`. Do not hardcode it in HTML.
 
 ## 💡 Future Roadmap & Expansion Placeholders
 1. **LeetCode & HackerRank Portals**: Automated cron-job integrations to pull real-time platform statistics via API into our unified tracking view.

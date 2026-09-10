@@ -4,10 +4,17 @@
 [[headers]]
   for = "/*"
   [headers.values]
+    # Do not let this site be framed.
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    Access-Control-Allow-Origin = "*"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    # NOTE: no Access-Control-Allow-Origin here. This site is not an API, and
+    # the previous "*" invited any origin to read these pages cross-site.
 
+# Real files win; only unknown paths fall back to the sign-in page, so
+# /privacy.html and /terms.html are served as themselves. Google's OAuth
+# verification fetches those URLs directly — they must not 404 or redirect.
 [[redirects]]
   from = "/*"
   to = "/index.html"

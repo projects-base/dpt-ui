@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Daily Problem Tracker — Sign In</title>
+  <title>Daily Problem Dynamic Tracker — Sign In</title>
   <meta name="description"
-    content="Sign in to Daily Problem Tracker to sync your coding progress, streaks, and MAANG prep notes across all devices." />
+    content="Daily Problem Dynamic Tracker — the Chrome extension and web dashboard that log every coding problem you solve, generate a Google Doc of each solution, and track your streak and progress." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -45,7 +45,7 @@
           </defs>
         </svg>
       </div>
-      <span class="brand-name">Daily Problem Tracker</span>
+      <span class="brand-name" data-app-name>Daily Problem Dynamic Tracker</span>
     </div>
 
     <!-- Card -->
@@ -54,7 +54,10 @@
 
       <div class="card-header">
         <h1 class="card-title">Welcome back</h1>
-        <p class="card-subtitle">Sign in to sync your coding streak and dashboard</p>
+        <p class="card-subtitle">
+          Sign in to <strong data-app-name>Daily Problem Dynamic Tracker</strong> to sync your coding
+          streak and dashboard
+        </p>
       </div>
 
       <!-- Stats tease -->
@@ -99,9 +102,10 @@
       </div>
 
       <p class="privacy-note">
-        By signing in, you agree to our
-        <a href="#" class="link">Privacy Policy</a>.
-        We only access your basic Google profile.
+        By signing in you agree to our
+        <a href="/terms.html" class="link">Terms of Service</a> and
+        <a href="/privacy.html" class="link">Privacy Policy</a>.
+        We request only the Google permissions needed to write your solution Docs and tracking Sheet.
       </p>
     </div>
 
@@ -112,6 +116,68 @@
       <div class="pill">🗓️ Daily Streaks</div>
       <div class="pill">🤖 Gemini AI</div>
     </div>
+
+    <!--
+      About section.
+
+      Google's OAuth verification requires this homepage to (a) explain what the
+      app does, (b) carry the same app name as the consent screen, and (c) name
+      the Chrome extension that shares this OAuth client. Do not remove it.
+    -->
+    <section class="about-section" id="about">
+      <h2 class="about-title">
+        What is <span data-app-name>Daily Problem Dynamic Tracker</span>?
+      </h2>
+      <p class="about-lead">
+        <strong data-app-name>Daily Problem Dynamic Tracker</strong> turns your daily coding practice into a
+        record you can actually review. Solve a problem on LeetCode, HackerRank or CodeChef, and it captures
+        the problem, rates your solution with Google Gemini, writes a formatted Google Doc into your own
+        Drive, appends a row to your tracking Sheet, and updates the streak and analytics on this dashboard.
+      </p>
+
+      <div class="about-grid">
+        <article class="about-card">
+          <div class="about-card-icon">🧩</div>
+          <h3>The Chrome extension</h3>
+          <p>
+            <strong data-app-name>Daily Problem Dynamic Tracker</strong> — the browser extension. It reads the
+            problem page you are on and the code you highlighted, then logs it in one click.
+          </p>
+          <a class="about-link" data-store-link target="_blank" rel="noopener noreferrer">
+            View on the Chrome Web Store ↗
+          </a>
+        </article>
+
+        <article class="about-card">
+          <div class="about-card-icon">📊</div>
+          <h3>This web dashboard</h3>
+          <p>
+            The same account, on any device. Review everything the extension logged, add problems by hand,
+            track your streak, and study your knowledge map — no extension required.
+          </p>
+          <a class="about-link" href="#loginCard">Sign in above ↑</a>
+        </article>
+
+        <article class="about-card">
+          <div class="about-card-icon">🔐</div>
+          <h3>Your data stays yours</h3>
+          <p>
+            We use the per-file <code>drive.file</code> scope, so the app only ever touches the Docs and
+            folders it created — never the rest of your Drive.
+          </p>
+          <a class="about-link" href="/privacy.html">Read the Privacy Policy ↗</a>
+        </article>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span data-app-name>Daily Problem Dynamic Tracker</span>
+      <nav class="site-footer-links">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="#" data-app-email>Support</a>
+      </nav>
+    </footer>
 
   </main>
 

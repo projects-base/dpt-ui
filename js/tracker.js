@@ -60,27 +60,53 @@ async function saveSettings() {
   }
   settings.folderId = folderRaw;
 
+  // Only the fields the server knows about. geminiKey and aiChatUrl are
+  // browser-local extras and were being silently dropped by the API.
+  const serverSettings = {
+    sheetUrl:     settings.sheetUrl,
+    folderId:     settings.folderId,
+    googleApiKey: settings.googleApiKey,
+    openDoc:      settings.openDoc,
+    openSheet:    settings.openSheet,
+  };
+
+  // Keep the browser-local extras regardless of what the server does.
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+
   try {
     const res = await fetch(`${API_BASE}/api/users/me/settings`, {
       method:  'PUT',
       headers: authHeaders(),
-      body:    JSON.stringify(settings),
+      body:    JSON.stringify(serverSettings),
     });
-    if (!res.ok) throw new Error('Failed to save settings to server');
-    
+
+    if (res.status === 401) {
+      showSettingsStatus('Your session expired. Please sign in again.', 'error');
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+
     // Update local cache
     const user = getCachedUser();
     if (user) {
-      Object.assign(user, settings);
+      Object.assign(user, serverSettings);
       sessionStorage.setItem('user', JSON.stringify(user));
     }
-  } catch (e) {
-    console.error(e);
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); // fallback
-  }
 
-  showSettingsStatus('✅ Settings saved!', 'success');
-  setTimeout(() => hideSettingsStatus(), 2500);
+    showSettingsStatus('✅ Settings saved!', 'success');
+    setTimeout(() => hideSettingsStatus(), 2500);
+  } catch (e) {
+    // Saying "saved" after a failed request meant settings silently reverted
+    // on the next device. Report it instead.
+    console.error('[Settings] Save failed:', e);
+    showSettingsStatus(
+      `⚠️ Saved on this device only — the server rejected it (${e.message}).`,
+      'error'
+    );
+  }
 }
 
 function showSettingsStatus(msg, type = 'success') {
@@ -121,6 +147,120 @@ function toggleLeftSidebar() {
 function toggleAIChat() {
   const rs = v('rightSidebar');
   rs.classList.toggle('collapsed');
+  if (!rs.classList.contains('collapsed')) {
+    applyAiWidth(loadAiWidth());
+    // Focus the composer so a mock interview can start typing straight away.
+    const input = v('geminiChatInput');
+    if (input) setTimeout(() => input.focus(), 320);
+  }
+}
+
+// ── Resizable AI panel ─────────────────────────────────────────────
+// A 340px column is too narrow to hold a mock-interview conversation. The
+// panel can be dragged wider, snapped to a wide preset, and remembers the
+// width per browser.
+
+const AI_WIDTH_KEY = 'dpt_ai_panel_width';
+const AI_WIDTH_MIN = 300;
+const AI_WIDTH_DEFAULT = 340;
+
+/** Upper bound: never let the panel crowd out the main content entirely. */
+function aiWidthMax() {
+  return Math.max(AI_WIDTH_MIN, Math.min(920, Math.round(window.innerWidth * 0.75)));
+}
+
+function clampAiWidth(px) {
+  return Math.min(aiWidthMax(), Math.max(AI_WIDTH_MIN, Math.round(px)));
+}
+
+function loadAiWidth() {
+  try {
+    const saved = parseInt(localStorage.getItem(AI_WIDTH_KEY), 10);
+    if (Number.isFinite(saved)) return clampAiWidth(saved);
+  } catch (_) {}
+  return AI_WIDTH_DEFAULT;
+}
+
+function applyAiWidth(px, persist = false) {
+  const width = clampAiWidth(px);
+  document.documentElement.style.setProperty('--ai-width', width + 'px');
+
+  const rs = v('rightSidebar');
+  if (rs) rs.classList.toggle('is-wide', width >= 520);
+
+  const btn = v('aiWideBtn');
+  if (btn) {
+    const wide = width >= 520;
+    btn.title = wide ? 'Restore normal width' : 'Expand for mock interviews';
+    btn.setAttribute('aria-label', btn.title);
+  }
+
+  if (persist) {
+    try { localStorage.setItem(AI_WIDTH_KEY, String(width)); } catch (_) {}
+  }
+  return width;
+}
+
+/** Snap between the normal column and a wide, interview-friendly panel. */
+function toggleAIWide() {
+  const current = parseInt(getComputedStyle(document.documentElement)
+    .getPropertyValue('--ai-width'), 10) || AI_WIDTH_DEFAULT;
+  const wideTarget = clampAiWidth(Math.round(window.innerWidth * 0.5));
+  applyAiWidth(current >= 520 ? AI_WIDTH_DEFAULT : wideTarget, true);
+}
+
+function initAiResize() {
+  const handle = v('aiResizeHandle');
+  const rs = v('rightSidebar');
+  if (!handle || !rs) return;
+
+  applyAiWidth(loadAiWidth());
+
+  let startX = 0;
+  let startWidth = 0;
+
+  const onMove = (e) => {
+    // The panel is on the right, so dragging left (negative dx) widens it.
+    applyAiWidth(startWidth + (startX - e.clientX));
+  };
+
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    rs.classList.remove('resizing');
+    document.body.classList.remove('ai-resizing');
+    // Persist only once the drag settles, not on every frame.
+    applyAiWidth(parseInt(getComputedStyle(document.documentElement)
+      .getPropertyValue('--ai-width'), 10) || AI_WIDTH_DEFAULT, true);
+  };
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (rs.classList.contains('collapsed')) return;
+    e.preventDefault();
+    startX = e.clientX;
+    startWidth = rs.getBoundingClientRect().width;
+    rs.classList.add('resizing');
+    document.body.classList.add('ai-resizing');
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+
+  handle.addEventListener('dblclick', (e) => { e.preventDefault(); toggleAIWide(); });
+
+  // Keyboard: the handle is a real button, so it is tab-reachable.
+  handle.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 80 : 24;
+    const current = rs.getBoundingClientRect().width;
+    if (e.key === 'ArrowLeft')       { e.preventDefault(); applyAiWidth(current + step, true); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); applyAiWidth(current - step, true); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAIWide(); }
+  });
+
+  // A saved width can exceed the viewport after a resize or a move to a
+  // smaller screen; re-clamp rather than leaving the panel off-screen.
+  window.addEventListener('resize', () => {
+    applyAiWidth(rs.getBoundingClientRect().width);
+  });
 }
 
 // ── Native Gemini Chat Logic ───────────────────────────────────────────
@@ -132,7 +272,7 @@ async function sendGeminiChat() {
   // Add User msg
   appendGeminiMsg(text, 'user');
   inputEl.value = '';
-  
+
   // Add loading
   const loadingId = appendGeminiMsg('Thinking...', 'bot', true);
 
@@ -143,14 +283,14 @@ async function sendGeminiChat() {
       headers: authHeaders(),
       body: JSON.stringify({ message: text })
     });
-    
+
     if (!res.ok) throw new Error('API Error: ' + (await res.text()));
     const data = await res.json();
     const reply = data.reply;
-    
+
     updateGeminiMsg(loadingId, formatGeminiMsg(reply));
   } catch (err) {
-    updateGeminiMsg(loadingId, '❌ API Error: ' + err.message);
+    updateGeminiMsg(loadingId, '❌ API Error: ' + escapeHtml(err.message));
   }
 }
 
@@ -158,8 +298,11 @@ function appendGeminiMsg(text, sender, isLoading = false) {
   const history = v('geminiChatHistory');
   const msg = document.createElement('div');
   msg.className = `gemini-msg ${sender}`;
-  msg.innerHTML = text; // allow bold/formatting
-  const id = 'msg-' + Date.now();
+  // textContent, not innerHTML — user input and raw model output are never
+  // markup. Formatted replies go through updateGeminiMsg/formatGeminiMsg,
+  // which escapes before adding its own tags.
+  msg.textContent = text;
+  const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
   if (isLoading) msg.id = id;
   history.appendChild(msg);
   history.scrollTop = history.scrollHeight;
@@ -175,7 +318,9 @@ function updateGeminiMsg(id, html) {
 }
 
 function formatGeminiMsg(text) {
-  return text
+  // Escape first, then add our own markup. Without this a reply containing
+  // e.g. an <img onerror> ran in the page.
+  return escapeHtml(String(text ?? ''))
     // code blocks first (multi-line)
     .replace(/```[\w]*\n?([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;overflow-x:auto;font-size:12px;margin:6px 0;"><code>$1</code></pre>')
     // inline code
@@ -335,7 +480,6 @@ async function submitTrackerProblem() {
       question:   question || null,
       code:       code || null,
       tags:       difficulty,
-      user:       { id: cachedUser.id },
     };
 
     const res = await fetch(`${API_BASE}/api/problems`, {
@@ -344,6 +488,10 @@ async function submitTrackerProblem() {
       body:    JSON.stringify(payload),
     });
 
+    if (res.status === 401) {
+      showGeminiStatus('❌ Your session expired. Please sign in again.', 'error');
+      return;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || `Server error ${res.status}`);
@@ -360,15 +508,7 @@ async function submitTrackerProblem() {
 
     // Reload overview — refresh both problems and analytics
     setTimeout(async () => {
-      const user = getCachedUser();
-      if (user) {
-        const [problems, analytics] = await Promise.all([
-          loadProblems(user.id),
-          loadAnalytics(user.id),
-        ]);
-        renderProblems(problems);
-        if (analytics) renderAnalytics(analytics);
-      }
+      await refreshOverview();
       hideGeminiStatus();
       switchTab('overview');
     }, 1500);
@@ -381,13 +521,8 @@ async function submitTrackerProblem() {
   }
 }
 
-// Expose so dashboard.js can call it after init
-async function refreshProblems() {
-  const user = getCachedUser();
-  if (!user) return;
-  const problems = await loadProblems(user.id);
-  renderProblems(problems);
-}
+// Kept as an alias: refreshOverview (dashboard.js) also repaints the stat tiles.
+const refreshProblems = refreshOverview;
 
 // ── Google Drive Folder Browser ────────────────────────────────────────
 let driveAccessToken = null;
@@ -399,7 +534,7 @@ function connectGoogleDrive() {
     return;
   }
   const client = google.accounts.oauth2.initTokenClient({
-    client_id: '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.googleusercontent.com',
+    client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.readonly',
     callback: (resp) => {
       if (resp.error) { console.error('Drive auth error:', resp); return; }
@@ -437,8 +572,8 @@ async function loadFolderDocs() {
     }
     container.innerHTML = data.files.map(f => {
       const date = new Date(f.createdTime).toLocaleDateString();
-      const name = f.name.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return `<a href="${f.webViewLink}" target="_blank" class="qv-doc-item">
+      const name = escapeHtml(f.name);
+      return `<a href="${escapeHtml(f.webViewLink)}" target="_blank" rel="noopener noreferrer" class="qv-doc-item">
         <span class="qv-doc-icon">📄</span>
         <div class="qv-doc-info">
           <span class="qv-doc-name">${name}</span>
@@ -448,7 +583,8 @@ async function loadFolderDocs() {
       </a>`;
     }).join('');
   } catch (err) {
-    container.innerHTML = `<p class="qv-placeholder" style="color:#ef4444;">Failed to load: ${err.message}</p>`;
+    container.innerHTML =
+      `<p class="qv-placeholder" style="color:#ef4444;">Failed to load: ${escapeHtml(err.message)}</p>`;
   }
 }
 
@@ -464,7 +600,18 @@ function openDriveFolder() {
 function renderSheetEmbed(force = false) {
   const container = v('sheetEmbed');
   if (!settings.sheetUrl) {
-    container.innerHTML = `<p class="qv-placeholder">Add a Google Sheet URL in <button class="link-btn" onclick="switchTab('settings')">Settings</button> to embed it here.</p>`;
+    // One line of text stranded in a tall empty card reads as broken. Give the
+    // empty state a shape, and a way out of it.
+    container.innerHTML = `
+      <div class="sheet-empty">
+        <div class="sheet-empty-icon">${String.fromCodePoint(0x1F4CA)}</div>
+        <p class="sheet-empty-title">No spreadsheet connected</p>
+        <p class="sheet-empty-msg">
+          Point this at the Google Sheet you track problems in and it will be embedded here,
+          so you never have to leave the dashboard.
+        </p>
+        <button class="btn btn-primary btn-sm" onclick="switchTab('settings')">Add a Sheet URL</button>
+      </div>`;
     return;
   }
   if (!force && v('sheetIframe')) return; // already loaded
@@ -513,7 +660,8 @@ function openSheetExternal() {
 // ── Bootstrap ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
-  
+  initAiResize();
+
   // Collapse right sidebar by default on load
   const rs = v('rightSidebar');
   if (rs && !rs.classList.contains('collapsed')) {

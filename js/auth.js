@@ -68,6 +68,7 @@ async function handleGoogleCredential(response) {
     sessionStorage.setItem('user', JSON.stringify(data));
 
     console.log('[Auth] Login successful, redirecting to dashboard...');
+    sessionStorage.removeItem('dpt_reauth_attempted');
     // Navigate to dashboard
     window.location.href = '/dashboard.html';
 
@@ -81,12 +82,33 @@ async function handleGoogleCredential(response) {
 
 // ── Initialize Google Identity Services ─────────────────────────
 
+/** True when the dashboard bounced us here because the token expired. */
+function isExpiredReturn() {
+  return new URLSearchParams(window.location.search).has('expired');
+}
+
 window.addEventListener('load', () => {
-  // If already signed in, skip straight to dashboard
-  if (sessionStorage.getItem('gToken') && sessionStorage.getItem('user')) {
+  // If already signed in, skip straight to dashboard.
+  // Not when returning from an expiry bounce — the dashboard has already
+  // cleared the stale token, and re-entering would just loop.
+  if (!isExpiredReturn() && sessionStorage.getItem('gToken') && sessionStorage.getItem('user')) {
     window.location.href = '/dashboard.html';
     return;
   }
+
+  if (isExpiredReturn()) {
+    showError('Your session expired. Please sign in again to continue.');
+  }
+
+  // If the account chooser never appears, the origin this page is served from
+  // is almost certainly missing from the OAuth client's "Authorized JavaScript
+  // origins". Google matches scheme + host + PORT exactly, and reports it only
+  // in the console, so surface it here where it can actually be seen.
+  console.info(
+    '[Auth] This page origin is %s — it must be listed verbatim under ' +
+    'Authorized JavaScript origins for client %s. See OAUTH_VERIFICATION.md.',
+    window.location.origin, GOOGLE_CLIENT_ID
+  );
 
   // Render GSI button once the library is ready
   const tryInit = () => {
@@ -96,11 +118,14 @@ window.addEventListener('load', () => {
     }
 
     google.accounts.id.initialize({
-      // ⚠ Replace with your real Google Client ID
-      client_id: '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.googleusercontent.com',
+      // Defined once in js/config.js, shared with the Drive token client.
+      client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleCredential,
+      // Always let the user choose. auto_select silently reuses the last
+      // account, which is wrong for anyone with more than one Google login.
       auto_select: false,
       cancel_on_tap_outside: true,
+      ux_mode: 'popup',
     });
 
     google.accounts.id.renderButton(
