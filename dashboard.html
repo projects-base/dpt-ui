@@ -757,6 +757,21 @@
               <label class="form-label" for="set-googleApiKey">Google API Key (Gemini)</label>
               <input id="set-googleApiKey" class="form-input" type="password" placeholder="AIzaSy..." />
             </div>
+            <div class="form-group">
+              <label class="form-label" for="set-geminiModel">Gemini Model</label>
+              <div class="model-picker-row">
+                <select id="set-geminiModel" class="form-input">
+                  <option value="">Server default</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="loadModelsBtn" type="button" onclick="loadGeminiModels()">
+                  Load models
+                </button>
+              </div>
+              <p class="form-hint" id="modelHint">
+                Which models are available depends on your key, project and region.
+                Save your key first, then load the list.
+              </p>
+            </div>
             <div class="settings-checkboxes">
               <label class="check-label">
                 <input type="checkbox" id="set-openDoc" /> Open Google Doc after submission

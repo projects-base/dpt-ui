@@ -15,6 +15,7 @@ let settings = {
   sheetUrl:   '',
   folderId:   '',
   googleApiKey: '',
+  geminiModel: '',
   geminiKey:  '',
   aiChatUrl:  '',
   openDoc:    false,
@@ -27,6 +28,7 @@ function loadSettings() {
     settings.sheetUrl = user.sheetUrl || '';
     settings.folderId = user.folderId || '';
     settings.googleApiKey = user.googleApiKey || '';
+    settings.geminiModel  = user.geminiModel  || '';
     settings.openDoc = !!user.openDoc;
     settings.openSheet = !!user.openSheet;
   } else {
@@ -40,6 +42,8 @@ function loadSettings() {
   v('set-sheetUrl').value     = s.sheetUrl  || '';
   v('set-folderId').value     = s.folderId  || '';
   v('set-googleApiKey').value = s.googleApiKey || '';
+  setModelOptions(s.geminiModel ? [{ name: s.geminiModel, displayName: s.geminiModel }] : [],
+                  s.geminiModel || '');
   const geminiKeyEl = v('set-geminiKey');
   if (geminiKeyEl) geminiKeyEl.value = s.geminiKey || '';
   const aiChatUrlEl = v('set-aiChatUrl');
@@ -51,6 +55,7 @@ function loadSettings() {
 async function saveSettings() {
   settings.sheetUrl     = v('set-sheetUrl').value.trim();
   settings.googleApiKey = v('set-googleApiKey').value.trim();
+  settings.geminiModel  = v('set-geminiModel') ? v('set-geminiModel').value : '';
   settings.openDoc      = v('set-openDoc').checked;
   settings.openSheet    = v('set-openSheet').checked;
 
@@ -66,6 +71,7 @@ async function saveSettings() {
     sheetUrl:     settings.sheetUrl,
     folderId:     settings.folderId,
     googleApiKey: settings.googleApiKey,
+    geminiModel:  settings.geminiModel,
     openDoc:      settings.openDoc,
     openSheet:    settings.openSheet,
   };
@@ -118,6 +124,90 @@ function showSettingsStatus(msg, type = 'success') {
 function hideSettingsStatus() {
   const el = v('settings-status');
   if (el) el.style.display = 'none';
+}
+
+
+// ── Gemini model picker ────────────────────────────────────────────
+//
+// Which models a key can call varies by key, project and region, and Gemini
+// reports an unavailable name as a bare 404. So the list is fetched from the
+// API rather than hard-coded, and the choice is stored per user.
+
+/** Rebuilds the select, keeping `selected` chosen even if it is not in `models`. */
+function setModelOptions(models, selected) {
+  const sel = v('set-geminiModel');
+  if (!sel) return;
+
+  sel.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = '';
+  def.textContent = 'Server default';
+  sel.appendChild(def);
+
+  const names = new Set();
+  (models || []).forEach(m => {
+    if (names.has(m.name)) return;
+    names.add(m.name);
+    const opt = document.createElement('option');
+    opt.value = m.name;
+    opt.textContent = m.displayName && m.displayName !== m.name
+      ? `${m.name} — ${m.displayName}`
+      : m.name;
+    sel.appendChild(opt);
+  });
+
+  // A previously saved model stays selectable before the list is loaded.
+  if (selected && !names.has(selected)) {
+    const opt = document.createElement('option');
+    opt.value = selected;
+    opt.textContent = selected + ' (saved)';
+    sel.appendChild(opt);
+  }
+
+  sel.value = selected || '';
+}
+
+function showModelHint(msg, kind) {
+  const el = v('modelHint');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'form-hint' + (kind ? ' ' + kind : '');
+}
+
+/** Asks the backend which models this user's key can actually call. */
+async function loadGeminiModels() {
+  const btn = v('loadModelsBtn');
+  const original = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  showModelHint('Asking Gemini which models your key can use…');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/gemini/models`, { headers: authHeaders() });
+
+    if (res.status === 401) {
+      showModelHint('Your session expired. Please sign in again.', 'fail');
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Could not load models (HTTP ${res.status})`);
+    }
+
+    const data = await res.json();
+    const models = data.models || [];
+    if (!models.length) {
+      showModelHint('Your key returned no models that support content generation.', 'fail');
+      return;
+    }
+
+    setModelOptions(models, settings.geminiModel || '');
+    showModelHint(`${models.length} model${models.length === 1 ? '' : 's'} available. ` +
+                  'Pick one and press Save Configuration.', 'ok');
+  } catch (err) {
+    showModelHint(err.message, 'fail');
+  } finally {
+    if (btn) { btn.disabled = false; if (original !== null) btn.textContent = original; }
+  }
 }
 
 // ── Tab Switching ──────────────────────────────────────────────────────

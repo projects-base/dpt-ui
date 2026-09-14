@@ -1323,3 +1323,19 @@ body.ai-resizing iframe { pointer-events: none; }
   .sheet-card { height: calc(100vh - 160px); }
   .sheet-card .qv-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
 }
+
+/* ── Gemini model picker ───────────────────────────────────────────
+   Model availability varies by API key, so the list is fetched rather
+   than hard-coded. */
+.model-picker-row { display: flex; gap: 8px; align-items: center; }
+.model-picker-row select { flex: 1; min-width: 0; }
+.model-picker-row .btn { flex-shrink: 0; white-space: nowrap; }
+
+.form-hint {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.form-hint.ok   { color: var(--green); }
+.form-hint.fail { color: var(--red); }
