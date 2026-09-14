@@ -284,13 +284,23 @@ async function sendGeminiChat() {
       body: JSON.stringify({ message: text })
     });
 
-    if (!res.ok) throw new Error('API Error: ' + (await res.text()));
+    if (res.status === 401) {
+      updateGeminiMsg(loadingId, 'Your session expired. Please sign in again.');
+      return;
+    }
+    if (!res.ok) {
+      // The server sends {"message": "..."} for both a missing key (400) and
+      // an upstream refusal (502). It previously returned an empty body, which
+      // rendered as "API Error:" with nothing after it.
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Gemini request failed (HTTP ${res.status})`);
+    }
     const data = await res.json();
     const reply = data.reply;
 
     updateGeminiMsg(loadingId, formatGeminiMsg(reply));
   } catch (err) {
-    updateGeminiMsg(loadingId, '❌ API Error: ' + escapeHtml(err.message));
+    updateGeminiMsg(loadingId, '⚠️ ' + escapeHtml(err.message));
   }
 }
 
@@ -419,9 +429,11 @@ async function analyzeCodeWithGemini(title, code, url = '') {
     body: JSON.stringify(payload)
   });
 
-  if (!res.ok) throw new Error('Gemini API Error: ' + (await res.text()));
-  const result = await res.json();
-  return result;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Gemini request failed (HTTP ${res.status})`);
+  }
+  return res.json();
 }
 
 function showGeminiStatus(msg, type) {
