@@ -1327,9 +1327,17 @@ body.ai-resizing iframe { pointer-events: none; }
 /* ── Gemini model picker ───────────────────────────────────────────
    Model availability varies by API key, so the list is fetched rather
    than hard-coded. */
-.model-picker-row { display: flex; gap: 8px; align-items: center; }
+.model-picker-row { display: flex; gap: 8px; align-items: stretch; }
 .model-picker-row select { flex: 1; min-width: 0; }
-.model-picker-row .btn { flex-shrink: 0; white-space: nowrap; }
+/* align-items: stretch plus this makes the button match the select's height,
+   which a btn-sm otherwise undershoots by ~12px. */
+.model-picker-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  padding-block: 0;
+}
 
 .form-hint {
   margin: 6px 0 0;

@@ -4,6 +4,11 @@
 
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
+  /* Tell the browser this is a dark UI. Without it Chrome paints native
+     controls — <select> popups, checkboxes, scrollbars, autofill — in light
+     mode, which is why the model dropdown looked pasted on from another site. */
+  color-scheme: dark;
+
   --bg-base:       #07080f;
   --bg-surface:    #0d0f1a;
   --bg-card:       rgba(255, 255, 255, 0.04);
@@ -946,3 +951,33 @@ img { display: block; max-width: 100%; }
 
 .site-footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
 .site-footer-links a { color: var(--text-secondary); }
+
+/* ── Selects ───────────────────────────────────────────────────────
+   .form-input was written for <input>; a <select> kept the platform arrow
+   and sat visually apart from every other field. Drop the native control
+   and draw our own chevron. */
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  /* Room for the chevron, so long model names never run under it. */
+  padding-right: 38px;
+  background-image:
+    url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394a3b8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  text-overflow: ellipsis;
+}
+select.form-input:hover { border-color: rgba(255, 255, 255, 0.18); }
+
+/* Chrome's autofill repaints the field near-white and ignores our background.
+   The huge inset shadow is the long-standing way to override it. */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  -webkit-box-shadow: 0 0 0 1000px #15172a inset;
+  caret-color: var(--text-primary);
+  transition: background-color 9999s ease-in-out 0s;
+}
