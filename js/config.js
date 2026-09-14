@@ -40,24 +40,39 @@ const GOOGLE_CLIENT_ID = '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.goo
 //
 // During local development the port can be overridden, for when something else
 // already owns 8080:
-//     http://localhost:3000/?api=http://localhost:8081
+//     http://localhost:3000/?api=http://localhost:8081   set it
+//     http://localhost:3000/?api=                        clear it, back to 8080
 // The choice is remembered in localStorage, so it survives navigation.
+//
+// A remembered override that points at a port nothing is listening on shows up
+// as "Failed to fetch" on every call, with no clue why — hence the explicit
+// clear above, and the console line below naming the base actually in use.
 //
 // The override is deliberately restricted to localhost. Honouring it in
 // production would let a crafted link point the dashboard — and the Google ID
 // token it carries — at an attacker's server.
+const API_BASE_OVERRIDE_KEY = 'dpt_api_base';
+
 const getApiBaseUrl = () => {
   const host = window.location.hostname;
   const isLocal = host === 'localhost' || host === '127.0.0.1';
 
   if (isLocal) {
-    const override = new URLSearchParams(window.location.search).get('api');
-    if (override) {
-      try { localStorage.setItem('dpt_api_base', override); } catch (_) {}
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('api')) {
+      const override = (params.get('api') || '').trim();
+      // An empty ?api= means "forget the override" rather than "use nothing".
+      if (!override) {
+        try { localStorage.removeItem(API_BASE_OVERRIDE_KEY); } catch (_) {}
+        return 'http://localhost:8080';
+      }
+      try { localStorage.setItem(API_BASE_OVERRIDE_KEY, override); } catch (_) {}
       return override.replace(/\/+$/, '');
     }
+
     try {
-      const saved = localStorage.getItem('dpt_api_base');
+      const saved = localStorage.getItem(API_BASE_OVERRIDE_KEY);
       if (saved) return saved.replace(/\/+$/, '');
     } catch (_) {}
     return 'http://localhost:8080';
@@ -66,11 +81,25 @@ const getApiBaseUrl = () => {
   return 'https://dpt-service.onrender.com';
 };
 
+/** Clears a remembered local API override. Callable from the console. */
+function resetApiBase() {
+  try { localStorage.removeItem(API_BASE_OVERRIDE_KEY); } catch (_) {}
+  window.location.reload();
+}
+
 const API_BASE = getApiBaseUrl();
 
 // Expose globally
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-  console.info('[Config] API base is %s (override with ?api=http://localhost:PORT)', API_BASE);
+  let saved = null;
+  try { saved = localStorage.getItem(API_BASE_OVERRIDE_KEY); } catch (_) {}
+  if (saved) {
+    console.warn(
+      '[Config] API base is %s — a REMEMBERED override, not the default. ' +
+      'If requests are failing, clear it with ?api= or resetApiBase().', API_BASE);
+  } else {
+    console.info('[Config] API base is %s (override with ?api=http://localhost:PORT)', API_BASE);
+  }
 }
 
 window.APP = APP;
