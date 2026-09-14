@@ -1,6 +1,6 @@
 # Daily Problem Dynamic Tracker 🚀
 
-A premium SaaS platform designed for **MAANG Preparation and coding mastery**. This application tracks coding problem progress across platforms, analyzes code quality using Gemini AI, scales data storage through Supabase, and connects seamlessly into developer workflows via a companion Chrome Extension.
+A premium SaaS platform designed for **MAANG Preparation and coding mastery**. This application tracks coding problem progress across platforms, analyzes code quality using Gemini AI, scales data storage through Neon Postgres, and connects seamlessly into developer workflows via a companion Chrome Extension.
 
 ---
 
@@ -24,7 +24,7 @@ A premium SaaS platform designed for **MAANG Preparation and coding mastery**. T
 
 ### Backend (API Service)
 - **Framework**: Spring Boot 4.0.5 (Java 21).
-- **Database**: PostgreSQL hosted on **Supabase**. Connected via IPv4 Pooling to ensure stable, active connections bypassing typical IPv6 latency issues.
+- **Database**: PostgreSQL hosted on **Neon**. Connected through Neon's pooled endpoint (PgBouncer, transaction mode), with server-side prepared statements disabled so pooled connections stay stable.
 - **Data Access**: Spring Data JPA + Hibernate.
 - **Security**: Stateless architecture using Spring Security OAuth2 Resource Server to validate JWTs (Google ID tokens) and explicitly check audiences/issuers.
 - **Deployment**: Multi-stage **Docker** containerization using Alpine Java 21, designed for fully automated CI/CD onto **Render**.
@@ -44,8 +44,8 @@ A `Dockerfile` maps the Spring application into a minimal Alpine footprint envir
 - `CORS_ALLOWED_ORIGINS`: Limits communication exclusively to the Netlify domain and Chrome Extension footprint.
 - `GOOGLE_CLIENT_ID`: Ensures valid token audiences.
 
-### 3. The Data Layer (Supabase)
-Relies on Supabase’s Postgres service. We use Transaction Pooling to rapidly accommodate backend connection requests triggered by extension rapid-fires and web traffic. All entity syncing utilizes seamless upserts.
+### 3. The Data Layer (Neon)
+Relies on Neon’s serverless Postgres. The pooled endpoint absorbs the connection churn from extension rapid-fires and web traffic. Neon’s compute auto-suspends when idle and resumes on the next query, so the connection pool is kept short-lived rather than holding sockets the server has already dropped.
 
 ---
 

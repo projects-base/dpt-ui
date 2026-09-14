@@ -435,7 +435,7 @@ function hideGeminiStatus() {
   if (el) el.style.display = 'none';
 }
 
-// ── Submit Tracker Problem → Supabase ─────────────────────────────────
+// ── Submit Tracker Problem → Dashboard ────────────────────────────────
 async function submitTrackerProblem() {
   const btn   = v('trackerSubmitBtn');
   const title = v('ext-questionTitle').value.trim();
@@ -447,7 +447,7 @@ async function submitTrackerProblem() {
 
   btn.disabled = true;
   btn.textContent = 'Saving...';
-  showGeminiStatus('⏳ Saving to Supabase...', 'loading');
+  showGeminiStatus('⏳ Saving…', 'loading');
 
   try {
     const cachedUser = getCachedUser();
