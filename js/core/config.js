@@ -5,7 +5,7 @@
 // must all match, and the privacy policy must be hosted on this domain. Change
 // the name in ONE place — here — and every page picks it up.
 
-const APP = {
+export const APP = {
   // Must match, character for character:
   //   • manifest.json  → "name"
   //   • Google Cloud Console → OAuth consent screen → "App name"
@@ -33,7 +33,7 @@ const APP = {
 
 // Google OAuth 2.0 Client ID — must equal app.google.client-id on the backend
 // and manifest.json → oauth2.client_id in the extension.
-const GOOGLE_CLIENT_ID = '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.googleusercontent.com';
 
 // Backend API base. Local dev talks to a service on :8080; everything else
 // talks to the deployed Render service.
@@ -51,7 +51,7 @@ const GOOGLE_CLIENT_ID = '683627191123-5551q39di0quqsd7p3oj1nt6oodlajfe.apps.goo
 // The override is deliberately restricted to localhost. Honouring it in
 // production would let a crafted link point the dashboard — and the Google ID
 // token it carries — at an attacker's server.
-const API_BASE_OVERRIDE_KEY = 'dpt_api_base';
+export const API_BASE_OVERRIDE_KEY = 'dpt_api_base';
 
 const getApiBaseUrl = () => {
   const host = window.location.hostname;
@@ -82,12 +82,12 @@ const getApiBaseUrl = () => {
 };
 
 /** Clears a remembered local API override. Callable from the console. */
-function resetApiBase() {
+export function resetApiBase() {
   try { localStorage.removeItem(API_BASE_OVERRIDE_KEY); } catch (_) {}
   window.location.reload();
 }
 
-const API_BASE = getApiBaseUrl();
+export const API_BASE = getApiBaseUrl();
 
 // Expose globally
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -102,9 +102,6 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   }
 }
 
-window.APP = APP;
-window.API_BASE = API_BASE;
-window.GOOGLE_CLIENT_ID = GOOGLE_CLIENT_ID;
 
 // Stamp the app name into any element marked data-app-name, so the branding
 // Google reviews can never drift out of sync with the consent screen.
@@ -119,3 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else el.removeAttribute('href');
   });
 });
+
+// resetApiBase is a console affordance for switching environments by hand.
+window.resetApiBase = resetApiBase;

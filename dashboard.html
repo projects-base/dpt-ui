@@ -44,7 +44,7 @@
           </div>
           <span class="brand-name" data-app-name title="Daily Problem Dynamic Tracker">Daily Problem Dynamic Tracker</span>
         </div>
-        <button class="btn-ghost btn-sm collapse-btn" onclick="toggleLeftSidebar()" title="Toggle Sidebar">
+        <button class="btn-ghost btn-sm collapse-btn" data-action="layout:toggleSidebar" title="Toggle Sidebar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
       </div>
@@ -101,7 +101,7 @@
             <span class="user-email-nav" id="userEmailNav">—</span>
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm btn-logout" id="signOutBtn" onclick="signOut()">
+        <button class="btn btn-ghost btn-sm btn-logout" id="signOutBtn" data-action="session:signOut">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
@@ -178,7 +178,7 @@
           <div class="card content-card" id="recentProblemsCard">
             <div class="content-card-header">
               <h2 class="content-card-title">Recent Problems</h2>
-              <button class="btn btn-primary btn-sm" id="addProblemNavBtn" onclick="switchTab('tracker')">
+              <button class="btn btn-primary btn-sm" id="addProblemNavBtn" data-action="tab:switch" data-tab="tracker">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add
               </button>
@@ -279,7 +279,7 @@
                 <div class="form-group">
                   <div class="ratings-header">
                     <label class="form-label" style="margin:0">Ratings (1–10)</label>
-                    <button id="geminiAutoFillBtn" class="btn-gemini" onclick="runGeminiAutoFill()">
+                    <button id="geminiAutoFillBtn" class="btn-gemini" data-action="assistant:autofill">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                       AI Auto-Fill
                     </button>
@@ -316,7 +316,7 @@
 
             <div id="gemini-status" class="gemini-status" style="display:none; flex-shrink: 0;"></div>
 
-            <button class="btn btn-primary btn-full" id="trackerSubmitBtn" onclick="submitTrackerProblem()" style="flex-shrink: 0; margin-top: 0;">
+            <button class="btn btn-primary btn-full" id="trackerSubmitBtn" data-action="tracker:submit" style="flex-shrink: 0; margin-top: 0;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               Save to Dashboard
             </button>
@@ -335,13 +335,13 @@
           <div class="qv-header">
             <span class="qv-title">Recent Documents</span>
             <div class="qv-actions">
-              <button class="btn btn-ghost btn-sm" id="refreshFolderBtn" onclick="loadFolderDocs()">↻ Refresh</button>
-              <button class="btn btn-primary btn-sm" id="openFolderBtn" onclick="openDriveFolder()">Open in Drive ↗</button>
+              <button class="btn btn-ghost btn-sm" id="refreshFolderBtn" data-action="drive:loadDocs">↻ Refresh</button>
+              <button class="btn btn-primary btn-sm" id="openFolderBtn" data-action="drive:openFolder">Open in Drive ↗</button>
             </div>
           </div>
           <div id="folderAuthBanner" class="folder-auth-banner" style="display:none;">
             <p>Connect Google Drive to browse your docs.</p>
-            <button class="btn btn-primary btn-sm" onclick="connectGoogleDrive()">Connect Google Drive</button>
+            <button class="btn btn-primary btn-sm" data-action="drive:connect">Connect Google Drive</button>
           </div>
           <div id="folderList" class="qv-list">
             <p class="qv-placeholder">Connect Google Drive to see your docs here.</p>
@@ -360,8 +360,8 @@
           <div class="qv-header">
             <span class="qv-title">Tracking Spreadsheet</span>
             <div class="qv-actions">
-              <button class="btn btn-ghost btn-sm" id="refreshSheetBtn" onclick="reloadSheetEmbed()">↻ Refresh</button>
-              <button class="btn btn-primary btn-sm" id="openSheetBtn" onclick="openSheetExternal()">Open Full ↗</button>
+              <button class="btn btn-ghost btn-sm" id="refreshSheetBtn" data-action="sheet:reload">↻ Refresh</button>
+              <button class="btn btn-primary btn-sm" id="openSheetBtn" data-action="sheet:open">Open Full ↗</button>
             </div>
           </div>
           <div id="sheetEmbed" class="sheet-embed-wrap"></div>
@@ -392,8 +392,8 @@
               </div>
             </div>
             <div class="portal-actions">
-              <button id="lcSyncBtn" class="btn btn-primary btn-sm" onclick="fetchLeetcodeStats(event)">Sync Stats</button>
-              <button class="btn btn-ghost btn-sm" onclick="window.open('https://leetcode.com/problemset/all/', '_blank')">Open ↗</button>
+              <button id="lcSyncBtn" class="btn btn-primary btn-sm" data-action="portals:leetcode">Sync Stats</button>
+              <button class="btn btn-ghost btn-sm" data-action="link:open" data-href="https://leetcode.com/problemset/all/">Open ↗</button>
             </div>
           </div>
 
@@ -413,8 +413,8 @@
               </div>
             </div>
             <div class="portal-actions">
-              <button id="ghSyncBtn" class="btn btn-primary btn-sm" onclick="fetchGithubStats(event)">Sync Stats</button>
-              <button class="btn btn-ghost btn-sm" onclick="window.open('https://github.com', '_blank')">Open ↗</button>
+              <button id="ghSyncBtn" class="btn btn-primary btn-sm" data-action="portals:github">Sync Stats</button>
+              <button class="btn btn-ghost btn-sm" data-action="link:open" data-href="https://github.com">Open ↗</button>
             </div>
           </div>
           
@@ -430,7 +430,7 @@
               <p class="quick-launch-text">Quick launch into interview preparation kits and algorithm challenges.</p>
             </div>
             <div class="portal-actions" style="justify-content: flex-end;">
-              <button class="btn btn-ghost btn-sm" onclick="window.open('https://www.hackerrank.com/dashboard', '_blank')">Open ↗</button>
+              <button class="btn btn-ghost btn-sm" data-action="link:open" data-href="https://www.hackerrank.com/dashboard">Open ↗</button>
             </div>
           </div>
 
@@ -450,7 +450,7 @@
               <p class="quick-launch-text">Competitive programming contests and problem ratings from Codeforces.</p>
             </div>
             <div class="portal-actions" style="justify-content: flex-end;">
-              <button class="btn btn-ghost btn-sm" onclick="window.open('https://codeforces.com/', '_blank')">Open ↗</button>
+              <button class="btn btn-ghost btn-sm" data-action="link:open" data-href="https://codeforces.com/">Open ↗</button>
             </div>
           </div>
 
@@ -468,7 +468,7 @@
           <h2 class="tab-title">🎓 Learning Portals</h2>
           <p class="tab-subtitle">
             Structured courses and DSA sheets. Jump straight to a section, or file it into your
-            <button class="link-btn" onclick="switchTab('knowledge')">Knowledge Web</button>
+            <button class="link-btn" data-action="tab:switch" data-tab="knowledge">Knowledge Web</button>
             to come back to it.
           </p>
         </div>
@@ -498,14 +498,14 @@
               <div class="portal-save">
                 <select class="form-input portal-cat-select" aria-label="Knowledge Web category for AlgoMaster"></select>
                 <button class="btn btn-ghost btn-sm"
-                        onclick="savePortalToKnowledge(this, 'AlgoMaster', 'https://algomaster.io/')">
+                        data-action="portals:save" data-label="AlgoMaster" data-url="https://algomaster.io/">
                   + Save
                 </button>
               </div>
               <p class="portal-save-status" hidden></p>
             </div>
             <div class="portal-actions" style="justify-content: flex-end;">
-              <button class="btn btn-primary btn-sm" onclick="window.open('https://algomaster.io/', '_blank', 'noopener')">Open ↗</button>
+              <button class="btn btn-primary btn-sm" data-action="link:open" data-href="https://algomaster.io/">Open ↗</button>
             </div>
           </div>
 
@@ -530,14 +530,14 @@
               <div class="portal-save">
                 <select class="form-input portal-cat-select" aria-label="Knowledge Web category for takeUforward"></select>
                 <button class="btn btn-ghost btn-sm"
-                        onclick="savePortalToKnowledge(this, 'takeUforward', 'https://takeuforward.org/')">
+                        data-action="portals:save" data-label="takeUforward" data-url="https://takeuforward.org/">
                   + Save
                 </button>
               </div>
               <p class="portal-save-status" hidden></p>
             </div>
             <div class="portal-actions" style="justify-content: flex-end;">
-              <button class="btn btn-primary btn-sm" onclick="window.open('https://takeuforward.org/', '_blank', 'noopener')">Open ↗</button>
+              <button class="btn btn-primary btn-sm" data-action="link:open" data-href="https://takeuforward.org/">Open ↗</button>
             </div>
           </div>
 
@@ -557,42 +557,42 @@
           <div class="sys-topics-panel">
             <h3 class="sys-panel-title">Core Concepts</h3>
             <div class="sys-topics-grid" id="sysTopicsGrid">
-              <div class="card sys-topic-card active" onclick="selectSysTopic('load-balancing')">
+              <div class="card sys-topic-card active" data-action="sysdesign:select" data-topic="load-balancing">
                 <div class="sys-topic-icon" style="background: rgba(99, 102, 241, 0.1); color: #818cf8;">⚖️</div>
                 <div class="sys-topic-info">
                   <h4>Load Balancing</h4>
                   <span>L4 vs L7, Round Robin</span>
                 </div>
               </div>
-              <div class="card sys-topic-card" onclick="selectSysTopic('caching')">
+              <div class="card sys-topic-card" data-action="sysdesign:select" data-topic="caching">
                 <div class="sys-topic-icon" style="background: rgba(16, 185, 129, 0.1); color: #34d399;">⚡</div>
                 <div class="sys-topic-info">
                   <h4>Caching Strategies</h4>
                   <span>Redis, Memcached, CDN</span>
                 </div>
               </div>
-              <div class="card sys-topic-card" onclick="selectSysTopic('databases')">
+              <div class="card sys-topic-card" data-action="sysdesign:select" data-topic="databases">
                 <div class="sys-topic-icon" style="background: rgba(245, 158, 11, 0.1); color: #fbbf24;">🗄️</div>
                 <div class="sys-topic-info">
                   <h4>Databases</h4>
                   <span>SQL vs NoSQL, Sharding</span>
                 </div>
               </div>
-              <div class="card sys-topic-card" onclick="selectSysTopic('messaging')">
+              <div class="card sys-topic-card" data-action="sysdesign:select" data-topic="messaging">
                 <div class="sys-topic-icon" style="background: rgba(236, 72, 153, 0.1); color: #f472b6;">📨</div>
                 <div class="sys-topic-info">
                   <h4>Message Queues</h4>
                   <span>Kafka, RabbitMQ, SQS</span>
                 </div>
               </div>
-              <div class="card sys-topic-card" onclick="selectSysTopic('cdn')">
+              <div class="card sys-topic-card" data-action="sysdesign:select" data-topic="cdn">
                 <div class="sys-topic-icon" style="background: rgba(14, 165, 233, 0.1); color: #38bdf8;">🌐</div>
                 <div class="sys-topic-info">
                   <h4>CDN & Edge</h4>
                   <span>CloudFront, Akamai, PoPs</span>
                 </div>
               </div>
-              <div class="card sys-topic-card" onclick="selectSysTopic('api-gateway')">
+              <div class="card sys-topic-card" data-action="sysdesign:select" data-topic="api-gateway">
                 <div class="sys-topic-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;">🔀</div>
                 <div class="sys-topic-info">
                   <h4>API Gateway</h4>
@@ -642,22 +642,22 @@
             <div class="card sys-interview-card">
               <div class="sys-interview-header">
                 <h3>🎙️ Interview Simulator</h3>
-                <button class="btn btn-primary btn-sm" onclick="toggleAIChat(); setTimeout(() => document.getElementById('geminiChatInput').value = 'Let\'s do a mock system design interview. Ask me to design a URL shortener like bit.ly.', 300);">Start Mock Interview</button>
+                <button class="btn btn-primary btn-sm" data-action="assistant:prompt" data-prompt="Let\&#x27;s do a mock system design interview. Ask me to design a URL shortener like bit.ly.">Start Mock Interview</button>
               </div>
               <div class="sys-question-list">
-                <div class="sys-question-item" onclick="document.getElementById('geminiChatInput').value = 'How would you design Twitter / X? What are the key bottlenecks?'; toggleAIChat();">
+                <div class="sys-question-item" data-action="assistant:prompt" data-prompt="How would you design Twitter / X? What are the key bottlenecks?">
                   <strong>Design Twitter</strong>
                   <p>News feed generation, high write throughput, fan-out architecture.</p>
                 </div>
-                <div class="sys-question-item" onclick="document.getElementById('geminiChatInput').value = 'How would you design a rate limiter? What algorithms would you use?'; toggleAIChat();">
+                <div class="sys-question-item" data-action="assistant:prompt" data-prompt="How would you design a rate limiter? What algorithms would you use?">
                   <strong>Design a Rate Limiter</strong>
                   <p>Token bucket, sliding window algorithms, Redis concurrency.</p>
                 </div>
-                <div class="sys-question-item" onclick="document.getElementById('geminiChatInput').value = 'How would you design a URL shortener like bit.ly?'; toggleAIChat();">
+                <div class="sys-question-item" data-action="assistant:prompt" data-prompt="How would you design a URL shortener like bit.ly?">
                   <strong>Design a URL Shortener</strong>
                   <p>Hashing strategies, redirect logic, analytics tracking.</p>
                 </div>
-                <div class="sys-question-item" onclick="document.getElementById('geminiChatInput').value = 'How would you design a distributed cache like Memcached or Redis?'; toggleAIChat();">
+                <div class="sys-question-item" data-action="assistant:prompt" data-prompt="How would you design a distributed cache like Memcached or Redis?">
                   <strong>Design Distributed Cache</strong>
                   <p>Eviction policies, consistent hashing, cache invalidation.</p>
                 </div>
@@ -696,9 +696,9 @@
                 <div class="kap-new-cat" id="kapNewCatRow" style="display:none;">
                   <input type="text" id="kapNewCatInput" class="form-input kap-input"
                          placeholder="Category name…" maxlength="24"
-                         onkeydown="if(event.key==='Enter')confirmNewCategory();if(event.key==='Escape')cancelNewCategory();" />
-                  <button class="btn btn-primary btn-sm" onclick="confirmNewCategory()">Add</button>
-                  <button class="btn btn-ghost btn-sm" onclick="cancelNewCategory()">✕</button>
+                         data-enter-action="knowledge:confirmCategory" data-escape-action="knowledge:cancelCategory" />
+                  <button class="btn btn-primary btn-sm" data-action="knowledge:confirmCategory">Add</button>
+                  <button class="btn btn-ghost btn-sm" data-action="knowledge:cancelCategory">✕</button>
                 </div>
               </div>
 
@@ -711,11 +711,11 @@
 
               <!-- (1,1) Actions -->
               <div class="kap-cell kap-actions-cell">
-                <button class="btn btn-primary kap-submit" onclick="addKnowledgeNode()">
+                <button class="btn btn-primary kap-submit" data-action="knowledge:addNode">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Add Node
                 </button>
-                <button class="btn btn-danger kap-delete" onclick="deleteSelectedNode()" id="deleteNodeBtn" disabled title="Select a node on the graph first to delete it">
+                <button class="btn btn-danger kap-delete" data-action="knowledge:deleteNode" id="deleteNodeBtn" disabled title="Select a node on the graph first to delete it">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                   Delete Node
                 </button>
@@ -770,7 +770,7 @@
                 <select id="set-geminiModel" class="form-input">
                   <option value="">Server default</option>
                 </select>
-                <button class="btn btn-ghost btn-sm" id="loadModelsBtn" type="button" onclick="loadGeminiModels()">
+                <button class="btn btn-ghost btn-sm" id="loadModelsBtn" type="button" data-action="settings:loadModels">
                   Load models
                 </button>
               </div>
@@ -787,7 +787,7 @@
                 <input type="checkbox" id="set-openSheet" /> Open Sheet after submission
               </label>
             </div>
-            <button class="btn btn-primary" id="saveSettingsBtn" onclick="saveSettings()">Save Configuration</button>
+            <button class="btn btn-primary" id="saveSettingsBtn" data-action="settings:save">Save Configuration</button>
             <div id="settings-status" class="settings-status" style="display:none;"></div>
           </div>
         </div>
@@ -804,7 +804,7 @@
               title="Drag to resize - double-click to toggle wide"></button>
       <div class="right-sidebar-inner">
         <!-- Open button: visible only when COLLAPSED (positioned via CSS) -->
-        <button class="ai-navbar-btn" onclick="toggleAIChat()" title="Open AI Assistant">
+        <button class="ai-navbar-btn" data-action="assistant:toggle" title="Open AI Assistant">
           🧠<span class="ai-text">Gemini</span>
         </button>
 
@@ -815,7 +815,7 @@
             <span>Gemini Assistant</span>
           </div>
           <div class="ai-header-actions">
-            <button class="btn-ghost btn-sm" id="aiWideBtn" onclick="toggleAIWide()"
+            <button class="btn-ghost btn-sm" id="aiWideBtn" data-action="layout:toggleAiWide"
                     title="Expand for mock interviews" aria-label="Expand AI panel">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -825,7 +825,7 @@
                 <line x1="3" y1="21" x2="10" y2="14"></line>
               </svg>
             </button>
-            <button class="btn-ghost btn-sm close-ai" onclick="toggleAIChat()" title="Close AI Panel">
+            <button class="btn-ghost btn-sm close-ai" data-action="assistant:toggle" title="Close AI Panel">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
@@ -836,8 +836,8 @@
         </div>
         
         <div class="gemini-chat-input-area">
-          <input type="text" id="geminiChatInput" placeholder="Message Gemini..." onkeypress="if(event.key === 'Enter') sendGeminiChat()" />
-          <button class="btn btn-primary btn-sm" onclick="sendGeminiChat()">
+          <input type="text" id="geminiChatInput" placeholder="Message Gemini..." data-enter-action="assistant:send" />
+          <button class="btn btn-primary btn-sm" data-action="assistant:send">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -849,7 +849,7 @@
   <!-- ── Knowledge Web Resource Drawer (fixed, full-height) ── -->
   <div class="kw-iframe-panel" id="kwIframePanel">
     <!-- Scrim: clicking outside closes the panel -->
-    <div class="kwp-scrim" onclick="closeKwPanel()"></div>
+    <div class="kwp-scrim" data-action="knowledge:closePanel"></div>
     <div class="kwp-drawer">
       <div class="kwp-header">
         <div class="kwp-title-row">
@@ -858,7 +858,7 @@
         </div>
         <div class="kwp-actions">
           <!-- PiP button -->
-          <button class="btn btn-ghost btn-sm" onclick="toggleKwPiP()" id="kwpPipBtn" title="Float in Picture-in-Picture">
+          <button class="btn btn-ghost btn-sm" data-action="knowledge:togglePiP" id="kwpPipBtn" title="Float in Picture-in-Picture">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2"/>
               <rect x="12" y="11" width="10" height="7" rx="1" fill="currentColor" stroke="none" opacity="0.7"/>
@@ -869,7 +869,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             Open &#8599;
           </a>
-          <button class="btn btn-ghost btn-sm" onclick="closeKwPanel()" title="Close">✕</button>
+          <button class="btn btn-ghost btn-sm" data-action="knowledge:closePanel" title="Close">✕</button>
         </div>
       </div>
       <div class="kwp-body">
@@ -892,16 +892,6 @@
     </div>
   </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script>
-    // API_BASE is resolved in config.js; the study app lives beside the API.
-    document.addEventListener('DOMContentLoaded', function () {
-      var link = document.getElementById('prepKitLink');
-      if (link && window.API_BASE) link.href = window.API_BASE + '/prep/';
-    });
-  </script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/tracker.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

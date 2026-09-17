@@ -1,13 +1,14 @@
 /**
- * auth.js — Google Sign-In flow for Daily Problem Tracker
+ * Entry point for the sign-in page.
  *
- * Uses Google Identity Services (GSI) to render the sign-in button.
- * When the user clicks it and selects their Google account, GSI calls
- * handleGoogleCredential() with the raw ID token.
- * We POST it to our backend, which validates it and creates/upserts the user.
+ * The dashboard's counterpart: index.html loads this, main.js loads the
+ * dashboard. It owns exactly one flow — take a Google credential, exchange it
+ * at /auth/google, stash the session and move on.
+ *
+ * It does NOT use core/http, because there is no session yet to authenticate
+ * with; that is the whole point of this page.
  */
-
-// API_BASE is now globally provided by config.js
+import { API_BASE, GOOGLE_CLIENT_ID } from './core/config.js';
 
 // ── Helpers ─────────────────────────────────────────────────────
 
