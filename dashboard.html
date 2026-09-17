@@ -71,6 +71,13 @@
         <button class="dash-tab" data-tab="knowledge">
           <span class="tab-icon">🕸️</span> <span class="tab-label">Knowledge Web</span>
         </button>
+        <!-- Served by the tracker service itself at /prep, so it shares the API
+             origin and the same Google sign-in. Opens in a new tab because it is
+             a full app, not a panel in this one. -->
+        <a class="dash-tab dash-tab--external" id="prepKitLink" href="#" target="_blank" rel="noopener">
+          <span class="tab-icon">🎯</span> <span class="tab-label">Interview Kit</span>
+          <span class="tab-external">↗</span>
+        </a>
 
         <div class="nav-section-title">Workspace</div>
         <button class="dash-tab" data-tab="folder">
@@ -886,6 +893,13 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script>
+    // API_BASE is resolved in config.js; the study app lives beside the API.
+    document.addEventListener('DOMContentLoaded', function () {
+      var link = document.getElementById('prepKitLink');
+      if (link && window.API_BASE) link.href = window.API_BASE + '/prep/';
+    });
+  </script>
   <script src="js/dashboard.js"></script>
   <script src="js/tracker.js"></script>
 </body>

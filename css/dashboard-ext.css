@@ -1347,3 +1347,13 @@ body.ai-resizing iframe { pointer-events: none; }
 }
 .form-hint.ok   { color: var(--green); }
 .form-hint.fail { color: var(--red); }
+
+/* Interview Kit lives on the service, not in this app, so its nav row is a
+   real link rather than a tab and says so. */
+.dash-tab--external { text-decoration: none; }
+.dash-tab--external .tab-external {
+  margin-left: auto;
+  opacity: 0.45;
+  font-size: 11px;
+}
+.dash-tab--external:hover .tab-external { opacity: 1; }

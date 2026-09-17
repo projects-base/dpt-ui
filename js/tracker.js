@@ -225,7 +225,12 @@ function switchTab(tabId) {
 }
 
 document.querySelectorAll('.dash-tab').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  btn.addEventListener('click', () => {
+    // A row without a data-tab is a link out of this app, not a panel. Passing
+    // undefined through would clear .active from every tab AND every panel and
+    // then activate nothing, leaving the dashboard blank.
+    if (btn.dataset.tab) switchTab(btn.dataset.tab);
+  });
 });
 
 // ── Layout Toggles ─────────────────────────────────────────────────────
