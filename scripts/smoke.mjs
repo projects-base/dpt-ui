@@ -138,6 +138,87 @@ const orphanTabs = [...window.document.querySelectorAll('.dash-tab[data-tab]')]
   .filter((id) => !window.document.getElementById('tab-' + id));
 check('every sidebar tab has a panel', orphanTabs.length === 0, orphanTabs.join(', '));
 
+section('the graph can actually be painted');
+// Importing a module proves it parses. It does not prove it runs, and the
+// gap between those two bit us: map.js assigned to `_categories`, which it
+// imports, and an imported binding is read-only. It threw "Assignment to
+// constant variable" at runtime and took the whole Knowledge tab with it.
+// Nothing caught it, because nothing ever called the function.
+if (!failed) {
+  // vis-network is a CDN global the module expects to find.
+  class FakeDataSet {
+    constructor(items = []) { this.items = [...items]; }
+    add(items) { this.items.push(...items); }
+    clear() { this.items = []; }
+    get(id) { return this.items.find((i) => i.id === id) || null; }
+  }
+  globalThis.vis = window.vis = { DataSet: FakeDataSet, Network: class { on() {} } };
+
+  const map = await import(pathToFileURL(path.join(ROOT, 'js/features/knowledge/map.js')).href);
+  let threw = null;
+  try {
+    map.applyGraph({
+      categories: [{ categoryKey: 'dsa', label: 'DSA', icon: 'D' }],
+      nodes: [{ nodeKey: '1', label: 'Root', kind: 'ROOT' }],
+      edges: [],
+    });
+  } catch (e) {
+    threw = e;
+  }
+  check('applyGraph paints a graph without throwing', threw === null, threw && threw.message);
+}
+
+section('the design tokens are actually used');
+// Thirty distinct font sizes had accumulated across two units — 13px beside
+// 13.5px beside 0.86rem, which is 13.76px. None of it was a decision. The
+// scale only stays a scale if nothing can quietly add a thirty-first step,
+// so a raw font-size outside tokens.css fails here.
+{
+  const cssFiles = ['css/style.css', 'css/dashboard-ext.css', 'css/legal.css'];
+  const raw = [];
+  for (const file of cssFiles) {
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    src.split('\n').forEach((line, i) => {
+      const m = line.match(/font-size: *([0-9.]+(?:px|rem|em))/);
+      // `font-size: 0` is a hide-the-text trick, not a size.
+      if (m && m[1] !== '0') raw.push(`${file}:${i + 1} ${m[1]}`);
+    });
+  }
+  check('every font-size is a token', raw.length === 0, raw.slice(0, 5).join(', '));
+
+  const tokens = fs.readFileSync(path.join(ROOT, 'css/tokens.css'), 'utf8');
+  const declared = new Set([...tokens.matchAll(/--([a-z0-9-]+):/g)].map((m) => m[1]));
+  const used = new Set();
+  for (const file of cssFiles) {
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    for (const m of src.matchAll(/var\(--([a-z0-9-]+)\)/g)) used.add(m[1]);
+  }
+  // A var() naming a token that does not exist resolves to nothing and the
+  // property is dropped silently — the worst kind of CSS bug.
+  const styleVars = new Set(
+    [...fs.readFileSync(path.join(ROOT, 'css/style.css'), 'utf8').matchAll(/--([a-z0-9-]+):/g)].map((m) => m[1]),
+  );
+  const dangling = [...used].filter((v) => !declared.has(v) && !styleVars.has(v));
+  check('no var() points at a token nobody declares', dangling.length === 0, dangling.slice(0, 6).join(', '));
+
+  const withoutRoot = tokens.replace(/:root[\s\S]*?\n}/g, '');
+  check('tokens.css declares no selectors',
+    !/^[.#a-zA-Z][^{]*{/m.test(withoutRoot),
+    'it should hold scales only');
+}
+
+section('every panel state comes from one place');
+{
+  const featureSrc = ['js/features/workspace.js', 'js/features/prep.js']
+    .map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'))
+    .join('\n');
+  check('no colour hardcoded inside a template string',
+    !/style="[^"]*color: *#/.test(featureSrc),
+    'use a panel-state modifier instead');
+  check('panels render states via ui/states.js',
+    /from '\.\.\/ui\/states\.js'/.test(featureSrc));
+}
+
 if (noticed.length) {
   section('jsdom notices');
   noticed.forEach((e) => console.log('  ' + e));

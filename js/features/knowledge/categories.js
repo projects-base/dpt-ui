@@ -94,15 +94,30 @@ export function selectKapPill(btn) {
 
 // ── Graph ──────────────────────────────────────────────────────────
 
-/** Paints a GraphView into the vis DataSets, creating the network if needed. */
+/**
+ * Replaces the category list and repaints anything showing it.
+ *
+ * This exists because `_categories` is exported, and an exported binding is
+ * read-only to whoever imports it — `map.js` assigning to it threw
+ * "Assignment to constant variable" and took the whole Knowledge tab with it.
+ * That worked when both files were one script sharing a global; it stopped the
+ * moment they became modules.
+ *
+ * So the state stays owned here and callers ask for the change, which is what
+ * they wanted anyway: they have a graph, not an opinion about a variable.
+ */
+export function setCategories(list) {
+  _categories = list || [];
+  renderCategoryPills();
+  emit(EVENTS.CATEGORIES_CHANGED, _categories);
+}
 
+/** Loads the categories on their own, so the pills paint before the graph does. */
 export async function initCategories() {
   if (_categories.length) { renderCategoryPills(); return; }
   try {
     const graph = await kwFetch('');
-    _categories = graph.categories || [];
-    renderCategoryPills();
-    emit(EVENTS.CATEGORIES_CHANGED, _categories);
+    setCategories(graph.categories);
   } catch (_) {
     // The graph loader will surface the error; pills can wait.
   }

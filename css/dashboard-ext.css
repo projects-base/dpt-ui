@@ -54,7 +54,7 @@ body.dashboard-page {
   gap: 0;
 }
 .sidebar.collapsed .tab-label { display: none; }
-.sidebar.collapsed .dash-tab .tab-icon { font-size: 20px; margin: 0; }
+.sidebar.collapsed .dash-tab .tab-icon { font-size: var(--fs-800); margin: 0; }
 /* Hide other misc things */
 .sidebar.collapsed .dash-tab > *:not(.tab-icon):not(.tab-label) { display: none; }
 
@@ -64,7 +64,7 @@ body.dashboard-page {
 .sidebar.collapsed .user-block { justify-content: center; }
 .sidebar.collapsed .user-avatar { width: 36px; height: 36px; }
 .sidebar.collapsed .btn-logout { width: 40px; justify-content: center; padding: 10px 0; font-size: 0; overflow: hidden; }
-.sidebar.collapsed .btn-logout svg { flex-shrink: 0; font-size: 16px; margin: 0; }
+.sidebar.collapsed .btn-logout svg { flex-shrink: 0; font-size: var(--fs-600); margin: 0; }
 
 .sidebar-header {
   padding: 20px 16px;
@@ -90,7 +90,7 @@ body.dashboard-page {
 }
 
 .nav-section-title {
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -156,8 +156,8 @@ body.dashboard-page {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e2e8f0;
-  font-size: 16px;
+  color: var(--text-body);
+  font-size: var(--fs-600);
   font-weight: 600;
   padding: 4px;
   transition: opacity 0.2s ease;
@@ -171,7 +171,7 @@ body.dashboard-page {
   left: 50%;
   transform: translate(-50%, -50%);
   flex-direction: column;
-  font-size: 22px;
+  font-size: var(--fs-800);
   gap: 4px;
 }
 .right-sidebar.collapsed .ai-navbar-btn .ai-text { display: none; }
@@ -192,8 +192,8 @@ body.dashboard-page {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  font-size: 14px;
-  color: #e2e8f0;
+  font-size: var(--fs-400);
+  color: var(--text-body);
 }
 
 .close-ai {
@@ -212,7 +212,7 @@ body.dashboard-page {
   flex-direction: column;
   gap: 20px;
   background: transparent;
-  font-size: 13px;
+  font-size: var(--fs-300);
   line-height: 1.6;
 }
 .gemini-msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; }
@@ -245,7 +245,7 @@ body.dashboard-page {
   border-radius: 12px;
   color: white;
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--fs-300);
   outline: none;
   transition: all 0.2s ease;
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
@@ -279,7 +279,7 @@ body.dashboard-page {
   color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-400);
   font-weight: 500;
   padding: 10px 14px;
   display: flex;
@@ -289,7 +289,7 @@ body.dashboard-page {
   text-align: left;
 }
 .dash-tab .tab-icon {
-  font-size: 16px;
+  font-size: var(--fs-600);
   opacity: 0.8;
   transition: var(--transition);
 }
@@ -331,18 +331,24 @@ body.dashboard-page {
 .main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 /* Tab Panels */
+/* Two shapes of tab, and a panel says which it is.
+   A DOCUMENT is capped and centred — you read it, so it wants a measure.
+   A CANVAS takes the width — a graph, a hub, an embedded app.
+   This used to be one default that four tabs overrode with !important,
+   which is the shape of a default that was never really a default. */
 .tab-content {
   display: none;
   animation: fadeSlideUp 0.4s ease both;
-  max-width: 1100px;
+  max-width: var(--tab-max);
   margin: 0 auto;
   width: 100%;
 }
 .tab-content.active { display: block; }
+.tab-content--full { max-width: none; }
 
 .tab-header { margin-bottom: 32px; }
-.tab-title { font-size: 28px; font-weight: 700; color: #f1f5f9; margin: 0 0 8px; letter-spacing: -0.5px; }
-.tab-subtitle { color: var(--text-secondary); font-size: 15px; margin: 0; max-width: 600px; line-height: 1.5; }
+.tab-title { font-size: var(--fs-900); font-weight: 700; color: var(--text-primary); margin: 0 0 8px; letter-spacing: -0.5px; }
+.tab-subtitle { color: var(--text-secondary); font-size: var(--fs-500); margin: 0; max-width: 600px; line-height: 1.5; }
 
 /* Apply spacing specifically to overview tab components */
 #tab-overview {
@@ -412,7 +418,7 @@ body.dashboard-page {
 .form-code {
   flex: 1;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace !important;
-  font-size: 13px !important;
+  font-size: var(--fs-300) !important;
   resize: none;
   background: rgba(11, 15, 25, 0.9) !important;
   line-height: 1.6 !important;
@@ -423,14 +429,14 @@ body.dashboard-page {
 .ratings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .ratings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .rating-item { display: flex; flex-direction: column; }
-.rating-item .form-label { font-size: 11px; margin-bottom: 8px; }
-.rating-item .form-input { text-align: center; font-size: 18px; font-weight: 700; padding: 10px 4px !important; }
+.rating-item .form-label { font-size: var(--fs-100); margin-bottom: 8px; }
+.rating-item .form-input { text-align: center; font-size: var(--fs-700); font-weight: 700; padding: 10px 4px !important; }
 
 /* Gemini AI Button */
 .btn-gemini {
-  align-items: center; background: linear-gradient(135deg, #a855f7, #6366f1);
+  align-items: center; background: linear-gradient(135deg, #a855f7, var(--accent-1));
   border: none; border-radius: 8px; color: white; cursor: pointer; display: flex;
-  font-family: inherit; font-size: 12px; font-weight: 600; gap: 6px; padding: 8px 16px;
+  font-family: inherit; font-size: var(--fs-200); font-weight: 600; gap: 6px; padding: 8px 16px;
   transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
 }
 .btn-gemini:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4); filter: brightness(1.1); }
@@ -442,12 +448,12 @@ body.dashboard-page {
   background: rgba(168, 85, 247, 0.03) !important;
 }
 
-.gemini-status { border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 12px; padding: 12px 16px; }
+.gemini-status { border-radius: 8px; font-size: var(--fs-300); font-weight: 500; margin-bottom: 12px; padding: 12px 16px; }
 .gemini-status--success { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
 .gemini-status--error   { background: rgba(239, 68, 68, 0.1);  color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
 .gemini-status--loading { background: rgba(99, 102, 241, 0.1); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.2); }
 
-.btn-full { width: 100%; justify-content: center; padding: 16px !important; font-size: 15px !important; margin-top: 8px; }
+.btn-full { width: 100%; justify-content: center; padding: 16px !important; font-size: var(--fs-500) !important; margin-top: 8px; }
 
 /* ── Workspaces (Drive/Sheet) ─────────────────────────────────────────── */
 .drive-card { max-width: 900px; margin: 0 auto; padding: 24px; }
@@ -458,22 +464,22 @@ body.dashboard-page {
 .folder-auth-banner p { margin: 0 0 16px; }
 
 .qv-header { align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; }
-.qv-title { color: #f1f5f9; font-size: 16px; font-weight: 600; }
+.qv-title { color: var(--text-primary); font-size: var(--fs-600); font-weight: 600; }
 .qv-actions { display: flex; gap: 8px; }
 .qv-list { display: flex; flex-direction: column; gap: 8px; }
-.qv-placeholder { color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px 0; margin: 0; }
+.qv-placeholder { color: var(--text-muted); font-size: var(--fs-400); text-align: center; padding: 40px 0; margin: 0; }
 
 .qv-doc-item {
   align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 10px; color: #e2e8f0; display: flex; gap: 14px; padding: 16px 20px;
+  border-radius: 10px; color: var(--text-body); display: flex; gap: 14px; padding: 16px 20px;
   text-decoration: none; transition: all 0.2s ease;
 }
 .qv-doc-item:hover { background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.qv-doc-icon { font-size: 22px; flex-shrink: 0; }
+.qv-doc-icon { font-size: var(--fs-800); flex-shrink: 0; }
 .qv-doc-info { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 4px; }
-.qv-doc-name { color: #f1f5f9; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qv-doc-date { color: var(--text-muted); font-size: 12px; }
-.qv-doc-arrow { color: var(--text-muted); font-size: 16px; opacity: 0; transition: var(--transition); transform: translateX(-4px); }
+.qv-doc-name { color: var(--text-primary); font-size: var(--fs-400); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qv-doc-date { color: var(--text-muted); font-size: var(--fs-200); }
+.qv-doc-arrow { color: var(--text-muted); font-size: var(--fs-600); opacity: 0; transition: var(--transition); transform: translateX(-4px); }
 .qv-doc-item:hover .qv-doc-arrow { opacity: 1; transform: translateX(0); color: var(--accent-3); }
 
 /* Sheet Embed */
@@ -481,11 +487,11 @@ body.dashboard-page {
 .sheet-embed-wrap { flex: 1; padding: 0; margin: 0; position: relative; background: rgba(0,0,0,0.2); border-radius: 8px; }
 .sheet-loader {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--text-secondary); font-size: 14px; gap: 16px; background: var(--bg-surface); z-index: 5;
+  color: var(--text-secondary); font-size: var(--fs-400); gap: 16px; background: var(--bg-surface); z-index: 5;
 }
 .sheet-spinner {
   animation: spin 1s linear infinite; border: 3px solid rgba(99, 102, 241, 0.2);
-  border-top-color: #6366f1; border-radius: 50%; height: 32px; width: 32px;
+  border-top-color: var(--accent-1); border-radius: 50%; height: 32px; width: 32px;
 }
 .sheet-iframe { border: none; height: 100%; width: 100%; position: relative; z-index: 10; }
 .sheet-iframe.hidden { opacity: 0; }
@@ -493,15 +499,13 @@ body.dashboard-page {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 24px; text-align: center; background: var(--bg-surface); z-index: 5;
 }
-.sheet-error-icon { font-size: 40px; }
-.sheet-error-title { color: #f1f5f9; font-size: 18px; font-weight: 600; margin: 0; }
-.sheet-error-msg { color: var(--text-secondary); font-size: 14px; margin: 0; max-width: 400px; line-height: 1.5; }
+.sheet-error-icon { font-size: var(--fs-1000); }
+.sheet-error-title { color: var(--text-primary); font-size: var(--fs-700); font-weight: 600; margin: 0; }
+.sheet-error-msg { color: var(--text-secondary); font-size: var(--fs-400); margin: 0; max-width: 400px; line-height: 1.5; }
 .sheet-error-actions { display: flex; gap: 12px; margin-top: 8px; }
 
 /* ── System Design Hub ────────────────────────────────────────────────── */
-/* Override the default tab max-width so System Design uses full width */
 #tab-system-design {
-  max-width: 100% !important;
   height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
@@ -528,7 +532,7 @@ body.dashboard-page {
   min-height: 0;
 }
 .sys-panel-title {
-  font-size: 14px;
+  font-size: var(--fs-400);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -556,7 +560,7 @@ body.dashboard-page {
 .sys-topic-card.active {
   background: rgba(99, 102, 241, 0.1);
   border-color: rgba(99, 102, 241, 0.5);
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--accent-1);
 }
 .sys-topic-icon {
   width: 40px;
@@ -565,7 +569,7 @@ body.dashboard-page {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: var(--fs-700);
   flex-shrink: 0;
 }
 .sys-topic-info {
@@ -575,11 +579,11 @@ body.dashboard-page {
 }
 .sys-topic-info h4 {
   margin: 0;
-  font-size: 15px;
-  color: #f1f5f9;
+  font-size: var(--fs-500);
+  color: var(--text-primary);
 }
 .sys-topic-info span {
-  font-size: 12px;
+  font-size: var(--fs-200);
   color: var(--text-muted);
 }
 .sys-article-list {
@@ -594,14 +598,14 @@ body.dashboard-page {
   padding: 12px 16px;
   background: rgba(255,255,255,0.02);
   border-radius: 8px;
-  color: #e2e8f0;
+  color: var(--text-body);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--fs-400);
   transition: all 0.2s ease;
 }
 .sys-article-link:hover {
   background: rgba(255,255,255,0.06);
-  color: var(--accent);
+  color: var(--accent-1);
 }
 
 .sys-content-panel {
@@ -623,7 +627,7 @@ body.dashboard-page {
   margin-bottom: 24px;
 }
 .sys-reader-header h3 {
-  font-size: 24px;
+  font-size: var(--fs-900);
   margin: 0 0 12px 0;
   color: #fff;
 }
@@ -635,7 +639,7 @@ body.dashboard-page {
   background: rgba(255,255,255,0.1);
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -645,7 +649,7 @@ body.dashboard-page {
   line-height: 1.6;
 }
 .sys-reader-body h4 {
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin: 24px 0 12px 0;
 }
 .sys-reader-body ul {
@@ -668,8 +672,8 @@ body.dashboard-page {
 }
 .sys-interview-header h3 {
   margin: 0;
-  font-size: 18px;
-  color: #f1f5f9;
+  font-size: var(--fs-700);
+  color: var(--text-primary);
 }
 .sys-question-list {
   display: grid;
@@ -686,26 +690,21 @@ body.dashboard-page {
 }
 .sys-question-item:hover {
   background: rgba(99, 102, 241, 0.15);
-  border-color: var(--accent);
+  border-color: var(--accent-1);
 }
 .sys-question-item strong {
   display: block;
-  font-size: 15px;
+  font-size: var(--fs-500);
   color: #e0e7ff;
   margin-bottom: 6px;
 }
 .sys-question-item p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-300);
   color: var(--text-muted);
 }
 
 /* ── Code Portals ─────────────────────────────────────────────────────── */
-/* Override default max-width for portals page */
-#tab-portals {
-  max-width: 100% !important;
-}
-
 .portals-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -731,9 +730,9 @@ body.dashboard-page {
 }
 .portal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-700);
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 .portal-icon {
   width: 40px;
@@ -765,11 +764,11 @@ body.dashboard-page {
   gap: 2px;
 }
 .portal-stat-item strong {
-  font-size: 18px;
-  color: #e2e8f0;
+  font-size: var(--fs-700);
+  color: var(--text-body);
 }
 .portal-stat-item span {
-  font-size: 12px;
+  font-size: var(--fs-200);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -780,16 +779,14 @@ body.dashboard-page {
   justify-content: space-between;
 }
 .quick-launch-text {
-  font-size: 14px;
+  font-size: var(--fs-400);
   color: var(--text-secondary);
   line-height: 1.5;
   margin: 0;
 }
 
 /* ── Knowledge Web (Mindmap) ──────────────────────────────────────────── */
-/* Override max-width for full-canvas feel */
 #tab-knowledge {
-  max-width: 100% !important;
   height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
@@ -834,7 +831,7 @@ body.dashboard-page {
 
 /* Labels */
 .kap-label {
-  font-size: 11px;
+  font-size: var(--fs-100);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -845,7 +842,7 @@ body.dashboard-page {
 /* Inputs */
 .kap-input {
   width: 100%;
-  font-size: 13.5px !important;
+  font-size: var(--fs-300) !important;
   padding: 10px 14px !important;
   background: rgba(0,0,0,0.25) !important;
   border-color: rgba(255,255,255,0.08) !important;
@@ -870,7 +867,7 @@ body.dashboard-page {
   color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--fs-200);
   font-weight: 500;
   padding: 5px 13px;
   transition: all 0.18s ease;
@@ -896,7 +893,7 @@ body.dashboard-page {
   border-radius: 20px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--fs-200);
   padding: 5px 12px;
   transition: all 0.18s ease;
   white-space: nowrap;
@@ -916,7 +913,7 @@ body.dashboard-page {
 .kap-new-cat .kap-input {
   flex: 1;
   padding: 6px 10px !important;
-  font-size: 12px !important;
+  font-size: var(--fs-200) !important;
 }
 
 /* Action cell (1,1) — buttons side by side */
@@ -935,7 +932,7 @@ body.dashboard-page {
   gap: 6px;
   flex: 1;
   padding: 10px 12px !important;
-  font-size: 13px !important;
+  font-size: var(--fs-300) !important;
   font-weight: 600 !important;
   border-radius: 10px !important;
   white-space: nowrap;
@@ -1037,11 +1034,11 @@ body.dashboard-page {
   flex: 1;
   overflow: hidden;
 }
-.kwp-icon { font-size: 18px; flex-shrink: 0; }
+.kwp-icon { font-size: var(--fs-700); flex-shrink: 0; }
 .kwp-title {
-  font-size: 15px;
+  font-size: var(--fs-500);
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-body);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1067,7 +1064,7 @@ body.dashboard-page {
   justify-content: center;
   gap: 16px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--fs-400);
   background: rgba(10, 12, 22, 0.98);
   z-index: 5;
 }
@@ -1075,7 +1072,7 @@ body.dashboard-page {
   width: 32px;
   height: 32px;
   border: 3px solid rgba(99,102,241,0.2);
-  border-top-color: #6366f1;
+  border-top-color: var(--accent-1);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
@@ -1097,7 +1094,7 @@ body.dashboard-page {
   text-align: center;
   padding: 40px 32px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--fs-400);
   gap: 8px;
 }
 
@@ -1105,15 +1102,15 @@ body.dashboard-page {
 .settings-card { max-width: 680px; padding: 32px; margin: 0 auto; }
 .settings-guide {
   align-items: flex-start; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: 12px; color: #e2e8f0; display: flex; font-size: 14px; gap: 16px; margin-bottom: 32px; padding: 20px;
+  border-radius: 12px; color: var(--text-body); display: flex; font-size: var(--fs-400); gap: 16px; margin-bottom: 32px; padding: 20px;
 }
 .settings-guide .info-icon { flex-shrink: 0; margin-top: 2px; color: #a5b4fc; }
 .settings-guide a { color: #a5b4fc; font-weight: 500; }
 .settings-guide a:hover { color: #e0e7ff; }
 .settings-section { display: flex; flex-direction: column; gap: 20px; }
 .settings-checkboxes { display: flex; flex-direction: column; gap: 12px; margin: 8px 0; }
-.check-label { align-items: center; color: #e2e8f0; cursor: pointer; display: flex; font-size: 14px; font-weight: 500; gap: 12px; }
-.check-label input[type=checkbox] { accent-color: #6366f1; cursor: pointer; height: 18px; width: 18px; }
+.check-label { align-items: center; color: var(--text-body); cursor: pointer; display: flex; font-size: var(--fs-400); font-weight: 500; gap: 12px; }
+.check-label input[type=checkbox] { accent-color: var(--accent-1); cursor: pointer; height: 18px; width: 18px; }
 
 /* Misc */
 .link-btn { background: none; border: none; color: #a5b4fc; cursor: pointer; font-size: inherit; padding: 0; text-decoration: underline; font-family: inherit; }
@@ -1143,7 +1140,7 @@ body.dashboard-page {
   background: rgba(245, 158, 11, 0.14);
   border-bottom: 1px solid rgba(245, 158, 11, 0.35);
   color: #fcd34d;
-  font-size: 0.85rem;
+  font-size: var(--fs-300);
   line-height: 1.5;
   text-align: center;
 }
@@ -1155,7 +1152,7 @@ body.dashboard-page {
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.25;
-  font-size: 0.92rem;
+  font-size: var(--fs-500);
 }
 
 /* ── Learning portal cards ─────────────────────────────────────────
@@ -1176,7 +1173,7 @@ body.dashboard-page {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
-  font-size: 0.775rem;
+  font-size: var(--fs-200);
   line-height: 1.5;
   white-space: nowrap;
   transition: var(--transition);
@@ -1198,13 +1195,13 @@ body.dashboard-page {
   flex: 1;
   min-width: 0;
   padding: 6px 10px;
-  font-size: 0.8rem;
+  font-size: var(--fs-200);
 }
 .portal-save .btn { flex-shrink: 0; }
 
 .portal-save-status {
   margin-top: 8px;
-  font-size: 0.78rem;
+  font-size: var(--fs-200);
   line-height: 1.5;
 }
 .portal-save-status.ok   { color: var(--green); }
@@ -1257,7 +1254,7 @@ body.ai-resizing iframe { pointer-events: none; }
 .ai-header-actions { display: flex; align-items: center; gap: 2px; }
 
 /* Roomier chat once the panel is widened. */
-.right-sidebar.is-wide .gemini-msg { max-width: 88%; font-size: 0.9rem; }
+.right-sidebar.is-wide .gemini-msg { max-width: 88%; font-size: var(--fs-400); }
 
 /* ── Custom Sheet empty state ──────────────────────────────────────
    The embed area is deliberately tall, so an unconfigured sheet needs a
@@ -1273,16 +1270,16 @@ body.ai-resizing iframe { pointer-events: none; }
   gap: 6px;
   padding: 32px 24px;
 }
-.sheet-empty-icon { font-size: 40px; opacity: 0.65; margin-bottom: 4px; }
+.sheet-empty-icon { font-size: var(--fs-1000); opacity: 0.65; margin-bottom: 4px; }
 .sheet-empty-title {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 0.98rem;
+  font-size: var(--fs-500);
   margin: 0;
 }
 .sheet-empty-msg {
   color: var(--text-secondary);
-  font-size: 0.86rem;
+  font-size: var(--fs-300);
   line-height: 1.6;
   max-width: 380px;
   margin: 0 0 14px;
@@ -1341,7 +1338,7 @@ body.ai-resizing iframe { pointer-events: none; }
 
 .form-hint {
   margin: 6px 0 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-200);
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -1357,7 +1354,6 @@ body.ai-resizing iframe { pointer-events: none; }
 #tab-prep.active {
   display: flex;
   flex-direction: column;
-  max-width: none;
   height: 100%;
   min-height: 560px;  /* if the parent height is ever indefinite, stay usable */
 }
@@ -1389,3 +1385,78 @@ body.ai-resizing iframe { pointer-events: none; }
   .tab-header.prep-header { flex-direction: column; }
   #tab-prep.active { min-height: 70vh; }
 }
+
+/* ── Panel states ──────────────────────────────────────────────────────
+   Loading, empty and error, in one shape.
+
+   These were ad hoc before: an hourglass emoji for loading, a bare
+   sentence for empty, and red text via an inline style="color:#ef4444"
+   inside a JS template. Three states, three vocabularies, and the error
+   colour hardcoded where no stylesheet could reach it.
+
+   A panel is in exactly one of these states at a time, so they share a
+   container and differ only by modifier. Rendered from js/ui/states.js —
+   features ask for a state, they do not write this markup. */
+
+.panel-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+  min-height: 180px;
+}
+.panel-state-icon {
+  font-size: var(--fs-1000);
+  line-height: var(--lh-none);
+  opacity: 0.55;
+}
+.panel-state-title {
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
+  color: var(--text-body);
+  margin: 0;
+}
+.panel-state-hint {
+  font-size: var(--fs-300);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 38ch;
+  line-height: var(--lh-normal);
+}
+.panel-state--error .panel-state-title { color: #fca5a5; }
+
+/* The loading spinner. A ring rather than an emoji, so it reads as
+   "working" rather than as a character in the sentence. */
+.panel-state-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-2);
+  border-radius: 50%;
+  animation: panel-state-spin 0.7s linear infinite;
+}
+@keyframes panel-state-spin { to { transform: rotate(360deg); } }
+
+/* Respect the OS setting: replace the spin with a pulse rather than
+   nothing, so the panel still reads as busy. */
+@media (prefers-reduced-motion: reduce) {
+  .panel-state-spinner {
+    animation: panel-state-pulse 1.4s ease-in-out infinite;
+    border-top-color: var(--border);
+  }
+  @keyframes panel-state-pulse { 50% { opacity: 0.35; } }
+}
+
+/* The Interview Kit frame is a whole app: it takes a moment, and an
+   empty rectangle in the meantime looks broken rather than busy. The
+   state sits behind the frame and the frame covers it once it paints. */
+.prep-embed-wrap { position: relative; }
+.prep-embed-wrap .panel-state {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+}
+.prep-embed { position: relative; z-index: 1; }

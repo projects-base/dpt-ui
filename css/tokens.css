@@ -1,0 +1,92 @@
+/* ============================================================
+   tokens.css — the vocabulary every other stylesheet speaks.
+
+   One job: declare the scales. No selectors, no components, no
+   layout. If a rule here targets an element, it is in the wrong file.
+
+   Load it FIRST, before style.css, on every page.
+
+   ── Why this exists ──────────────────────────────────────────
+   The dashboard had drifted to thirty distinct font sizes across two
+   units — 13px next to 13.5px next to 0.86rem, which is 13.76px. None
+   of that was a decision; it was thirty separate moments of "this looks
+   about right", and the result is that nothing lines up and no two
+   panels feel related.
+
+   A scale removes the choice. There is no 13.5 step, so nobody can pick
+   one. Reach for the nearest token and the page stays in rhythm.
+
+   ── Using it ─────────────────────────────────────────────────
+   Every font-size in this project is a var(--fs-*). scripts/smoke.mjs
+   enforces that, so a raw px value fails the build rather than quietly
+   adding a thirty-first size.
+   ============================================================ */
+
+:root {
+  /* ── Type scale ────────────────────────────────────────────
+     Ten steps, each with the job it was chosen for. Numeric names
+     rather than t-shirt sizes: they sort, and "is lg bigger than xl"
+     stops being a question. */
+  --fs-100: 11px;  /* uppercase overlines, badges, stat captions   */
+  --fs-200: 12px;  /* metadata, pills, timestamps                  */
+  --fs-300: 13px;  /* dense secondary UI — chat, hints, code       */
+  --fs-400: 14px;  /* body and controls. The default.              */
+  --fs-500: 15px;  /* emphasis body, tab subtitles                 */
+  --fs-600: 16px;  /* card and panel titles                        */
+  --fs-700: 18px;  /* section headings                             */
+  --fs-800: 22px;  /* secondary numerals                           */
+  --fs-900: 28px;  /* page titles, hero stats                      */
+  --fs-1000: 40px; /* decorative glyphs and empty-state icons      */
+
+  /* ── Weight ────────────────────────────────────────────────
+     Inter ships the full range; these are the five actually used. */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+
+  /* ── Line height ───────────────────────────────────────────
+     Unitless, so they inherit proportionally. Tight for display
+     numerals, relaxed for anything you actually read. */
+  --lh-none: 1;
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* ── Spacing ───────────────────────────────────────────────
+     A 4px grid. The dashboard was already close to one — 4, 8, 12,
+     16, 20, 24, 32, 40 — with a stray 5px and 6px. Named so the odd
+     values have nowhere to hide. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── Text colour ───────────────────────────────────────────
+     There were three near-identical whites in play — #f0f0ff, #f1f5f9
+     and #e2e8f0 — used interchangeably for the same job. These are the
+     four steps that were actually meant, from headings down to
+     disabled. --text-body is the new one: it was the eight uses of
+     #e2e8f0 that had no name. */
+  --text-primary: #f0f0ff;   /* headings                            */
+  --text-body: #e2e8f0;      /* running text inside cards           */
+  --text-secondary: #94a3b8; /* supporting copy, labels             */
+  --text-muted: #475569;     /* placeholders, disabled, empty states */
+
+  /* ── Reading measure ───────────────────────────────────────
+     Prose stops being readable past about 75 characters a line.
+     Panels that are documents use this; panels that are canvases or
+     embedded apps take the full width instead. */
+  --measure: 68ch;
+
+  /* ── Layout ────────────────────────────────────────────────
+     The width a document-shaped tab is capped at. Canvas-shaped tabs
+     opt out with .tab-content--full rather than overriding this. */
+  --tab-max: 1100px;
+}

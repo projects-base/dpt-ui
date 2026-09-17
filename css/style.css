@@ -16,9 +16,8 @@
   --border:        rgba(255, 255, 255, 0.08);
   --border-hover:  rgba(139, 92, 246, 0.4);
 
-  --text-primary:   #f0f0ff;
-  --text-secondary: #94a3b8;
-  --text-muted:     #475569;
+  /* Text colours live in tokens.css — it loads first and owns them,
+     so they are not redeclared here. */
 
   --accent-1: #6366f1;   /* indigo */
   --accent-2: #8b5cf6;   /* violet */
@@ -138,7 +137,7 @@ img { display: block; max-width: 100%; }
   gap: 6px;
   padding: 10px 20px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: var(--fs-400);
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -166,7 +165,7 @@ img { display: block; max-width: 100%; }
   color: var(--text-primary);
   border-color: var(--border-hover);
 }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-sm { padding: 6px 12px; font-size: var(--fs-200); }
 
 /* ══════════════════════════════════════════════════════════════
    LOGIN PAGE
@@ -222,7 +221,7 @@ img { display: block; max-width: 100%; }
 }
 .brand-icon--sm { width: 28px; height: 28px; border-radius: 8px; }
 .brand-name {
-  font-size: 16px;
+  font-size: var(--fs-600);
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.3px;
@@ -237,7 +236,7 @@ img { display: block; max-width: 100%; }
 
 .card-header { margin-bottom: 20px; }
 .card-title {
-  font-size: 24px;
+  font-size: var(--fs-900);
   font-weight: 700;
   letter-spacing: -0.5px;
   margin-bottom: 6px;
@@ -247,7 +246,7 @@ img { display: block; max-width: 100%; }
   background-clip: text;
 }
 .card-subtitle {
-  font-size: 14px;
+  font-size: var(--fs-400);
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -266,11 +265,11 @@ img { display: block; max-width: 100%; }
   background: rgba(99,102,241,0.1);
   border: 1px solid rgba(99,102,241,0.2);
   border-radius: 20px;
-  font-size: 12px;
+  font-size: var(--fs-200);
   color: var(--text-secondary);
   font-weight: 500;
 }
-.stat-icon { font-size: 13px; }
+.stat-icon { font-size: var(--fs-300); }
 
 /* Divider */
 .divider {
@@ -279,7 +278,7 @@ img { display: block; max-width: 100%; }
   gap: 12px;
   margin-bottom: 20px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--fs-200);
 }
 .divider::before, .divider::after {
   content: '';
@@ -307,7 +306,7 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(239,68,68,0.3);
   border-radius: var(--radius-sm);
   color: #fca5a5;
-  font-size: 13px;
+  font-size: var(--fs-300);
   margin-bottom: 12px;
   animation: fadeSlideUp 0.3s ease;
 }
@@ -320,7 +319,7 @@ img { display: block; max-width: 100%; }
   gap: 10px;
   padding: 14px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--fs-400);
 }
 .spinner {
   width: 18px; height: 18px;
@@ -333,7 +332,7 @@ img { display: block; max-width: 100%; }
 
 /* Privacy note */
 .privacy-note {
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   text-align: center;
   line-height: 1.6;
@@ -354,7 +353,7 @@ img { display: block; max-width: 100%; }
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
 }
 
@@ -412,13 +411,13 @@ img { display: block; max-width: 100%; }
   gap: 1px;
 }
 .user-name-nav {
-  font-size: 13px;
+  font-size: var(--fs-300);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1;
 }
 .user-email-nav {
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   line-height: 1;
 }
@@ -448,13 +447,13 @@ img { display: block; max-width: 100%; }
   backdrop-filter: blur(20px);
 }
 .welcome-title {
-  font-size: 26px;
+  font-size: var(--fs-900);
   font-weight: 700;
   letter-spacing: -0.5px;
   margin-bottom: 4px;
 }
 .welcome-subtitle {
-  font-size: 14px;
+  font-size: var(--fs-400);
   color: var(--text-secondary);
 }
 .streak-badge {
@@ -466,15 +465,15 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(245,158,11,0.3);
   border-radius: var(--radius-md);
 }
-.streak-fire { font-size: 32px; }
+.streak-fire { font-size: var(--fs-1000); }
 .streak-count {
-  font-size: 28px;
+  font-size: var(--fs-900);
   font-weight: 800;
   color: #fbbf24;
   line-height: 1;
 }
 .streak-label {
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -518,19 +517,19 @@ img { display: block; max-width: 100%; }
   flex-shrink: 0;
 }
 .stat-card-value {
-  font-size: 28px;
+  font-size: var(--fs-900);
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1;
 }
 .stat-card-label {
-  font-size: 12px;
+  font-size: var(--fs-200);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .stat-card-trend {
-  font-size: 11px;
+  font-size: var(--fs-100);
   font-weight: 500;
 }
 .stat-card-trend.up { color: var(--green); }
@@ -552,7 +551,7 @@ img { display: block; max-width: 100%; }
   margin-bottom: 20px;
 }
 .content-card-title {
-  font-size: 16px;
+  font-size: var(--fs-600);
   font-weight: 600;
   letter-spacing: -0.3px;
 }
@@ -586,7 +585,7 @@ img { display: block; max-width: 100%; }
   flex-shrink: 0;
   padding: 3px 8px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: var(--fs-100);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -596,14 +595,14 @@ img { display: block; max-width: 100%; }
 .diff-hard    { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 .problem-info { flex: 1; min-width: 0; }
 .problem-title {
-  font-size: 14px;
+  font-size: var(--fs-400);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .problem-meta {
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -618,7 +617,7 @@ img { display: block; max-width: 100%; }
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-400);
   padding: 4px 6px;
   border-radius: 6px;
   opacity: 0;
@@ -650,7 +649,7 @@ img { display: block; max-width: 100%; }
   background: rgba(99,102,241,0.1);
   border: 1px solid rgba(99,102,241,0.2);
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--fs-100);
   color: var(--accent-3);
   white-space: nowrap;
 }
@@ -661,8 +660,8 @@ img { display: block; max-width: 100%; }
   padding: 40px 20px;
   color: var(--text-muted);
 }
-.empty-icon { font-size: 36px; margin-bottom: 10px; }
-.empty-state p { font-size: 13px; }
+.empty-icon { font-size: var(--fs-1000); margin-bottom: 10px; }
+.empty-state p { font-size: var(--fs-300); }
 
 /* ── Profile Card Body ───────────────────────────────────────── */
 .profile-body { text-align: center; }
@@ -685,12 +684,12 @@ img { display: block; max-width: 100%; }
   z-index: -1;
 }
 .profile-name {
-  font-size: 16px;
+  font-size: var(--fs-600);
   font-weight: 600;
   margin-bottom: 4px;
 }
 .profile-email {
-  font-size: 12px;
+  font-size: var(--fs-200);
   color: var(--text-muted);
   margin-bottom: 20px;
   word-break: break-all;
@@ -704,13 +703,13 @@ img { display: block; max-width: 100%; }
 }
 .profile-stat { text-align: center; }
 .profile-stat-val {
-  font-size: 20px;
+  font-size: var(--fs-800);
   font-weight: 700;
   line-height: 1;
   margin-bottom: 2px;
 }
 .profile-stat-label {
-  font-size: 10px;
+  font-size: var(--fs-100);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -729,7 +728,7 @@ img { display: block; max-width: 100%; }
   background: rgba(66,133,244,0.08);
   border: 1px solid rgba(66,133,244,0.2);
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--fs-100);
   color: var(--text-secondary);
 }
 
@@ -737,7 +736,7 @@ img { display: block; max-width: 100%; }
 .badge {
   padding: 3px 9px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: var(--fs-100);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -777,12 +776,12 @@ img { display: block; max-width: 100%; }
   align-items: center;
   margin-bottom: 24px;
 }
-.modal-title { font-size: 18px; font-weight: 700; }
+.modal-title { font-size: var(--fs-700); font-weight: 700; }
 .modal-close {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: var(--fs-600);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
@@ -799,7 +798,7 @@ img { display: block; max-width: 100%; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-label {
-  font-size: 12px;
+  font-size: var(--fs-200);
   font-weight: 500;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -811,7 +810,7 @@ img { display: block; max-width: 100%; }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--fs-400);
   font-family: inherit;
   outline: none;
   transition: var(--transition);
@@ -836,7 +835,7 @@ img { display: block; max-width: 100%; }
 @media (max-width: 560px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .welcome-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .stat-card-value { font-size: 22px; }
+  .stat-card-value { font-size: var(--fs-800); }
   .login-card { padding: 24px 20px; }
   .stats-row { flex-wrap: wrap; }
   .navbar { padding: 0 16px; }
@@ -872,7 +871,7 @@ img { display: block; max-width: 100%; }
 .about-lead {
   color: var(--text-secondary);
   line-height: 1.72;
-  font-size: 0.96rem;
+  font-size: var(--fs-500);
   max-width: 640px;
   margin: 0 auto 40px;
 }
@@ -897,23 +896,23 @@ img { display: block; max-width: 100%; }
   transform: translateY(-2px);
 }
 
-.about-card-icon { font-size: 1.5rem; margin-bottom: 10px; }
+.about-card-icon { font-size: var(--fs-900); margin-bottom: 10px; }
 
 .about-card h3 {
-  font-size: 0.98rem;
+  font-size: var(--fs-500);
   font-weight: 600;
   margin-bottom: 8px;
 }
 
 .about-card p {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--fs-400);
   line-height: 1.62;
   margin-bottom: 12px;
 }
 
 .about-card code {
-  font-size: 0.8rem;
+  font-size: var(--fs-200);
   background: rgba(255, 255, 255, 0.06);
   padding: 1px 5px;
   border-radius: 4px;
@@ -921,7 +920,7 @@ img { display: block; max-width: 100%; }
 }
 
 .about-link {
-  font-size: 0.84rem;
+  font-size: var(--fs-300);
   font-weight: 500;
   color: var(--accent-3);
 }
@@ -945,7 +944,7 @@ img { display: block; max-width: 100%; }
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  font-size: 0.82rem;
+  font-size: var(--fs-300);
   color: var(--text-muted);
 }
 

@@ -10,6 +10,7 @@ import { loadSettings, settings } from './settings.js';
 import { initAiResize } from '../ui/layout.js';
 import { GOOGLE_CLIENT_ID } from '../core/config.js';
 import { EVENTS, on } from '../core/events.js';
+import { emptyState, errorState, loadingState } from '../ui/states.js';
 
 export let driveAccessToken = null;
 
@@ -40,10 +41,14 @@ export async function loadFolderDocs() {
     return;
   }
   if (!settings.folderId) {
-    container.innerHTML = '<p class="qv-placeholder">No Drive folder configured.<br>Add a Folder ID in Settings.</p>';
+    container.innerHTML = emptyState({
+      icon: '📁',
+      title: 'No Drive folder configured',
+      hint: 'Add a Folder ID in Settings and your problem write-ups will appear here.',
+    });
     return;
   }
-  container.innerHTML = '<p class="qv-placeholder">⏳ Loading documents…</p>';
+  container.innerHTML = loadingState('Fetching your documents from Drive…');
   try {
     const query = encodeURIComponent(`'${settings.folderId}' in parents and trashed=false`);
     const res = await fetch(
@@ -53,7 +58,11 @@ export async function loadFolderDocs() {
     if (!res.ok) throw new Error('Drive API error: ' + res.status);
     const data = await res.json();
     if (!data.files?.length) {
-      container.innerHTML = '<p class="qv-placeholder">No documents yet. Submit a problem to auto-create one.</p>';
+      container.innerHTML = emptyState({
+        icon: '📄',
+        title: 'No documents yet',
+        hint: 'Submit a problem and one is created for you automatically.',
+      });
       return;
     }
     container.innerHTML = data.files.map(f => {
@@ -69,8 +78,11 @@ export async function loadFolderDocs() {
       </a>`;
     }).join('');
   } catch (err) {
-    container.innerHTML =
-      `<p class="qv-placeholder" style="color:#ef4444;">Failed to load: ${escapeHtml(err.message)}</p>`;
+    container.innerHTML = errorState({
+      title: 'Could not reach Drive',
+      detail: err.message,
+      retryAction: 'drive:loadDocs',
+    });
   }
 }
 

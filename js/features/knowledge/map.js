@@ -6,9 +6,9 @@
  * mutating them, so only this file knows the vis-network node shape.
  */
 import { kwFetch } from '../../api/knowledge.js';
-import { EVENTS, emit, on } from '../../core/events.js';
+import { EVENTS, on } from '../../core/events.js';
 import { escapeHtml } from '../../core/dom.js';
-import { KW_CAT_KEY, _categories, categoryByKey, renderCategoryPills } from './categories.js';
+import { KW_CAT_KEY, _categories, categoryByKey, setCategories } from './categories.js';
 import { closeKwPanel, openKwPanel } from './panel.js';
 import { log } from '../../core/log.js';
 
@@ -148,10 +148,9 @@ export async function migrateLocalGraph() {
 
 // ── Categories ─────────────────────────────────────────────────────
 
+/** Paints a GraphView into the vis DataSets, creating the network if needed. */
 export function applyGraph(graph) {
-  _categories = graph.categories || [];
-  renderCategoryPills();
-  emit(EVENTS.CATEGORIES_CHANGED);
+  setCategories(graph.categories);
 
   const visNodes = (graph.nodes || []).map(toVisNode);
   const visEdges = (graph.edges || []).map(e => ({ from: e.from, to: e.to }));

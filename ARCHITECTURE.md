@@ -9,6 +9,15 @@ Netlify. Open a file and what you see is what runs.
 index.html      → js/signin.js   entry point for signing in
 dashboard.html  → js/main.js     entry point for everything else
 
+css/
+  tokens.css             the scales: type, weight, spacing, text colour
+  style.css              palette, reset, shared components
+  dashboard-ext.css      the dashboard's own layout and panels
+  legal.css              privacy and terms
+
+  tokens.css loads FIRST on every page and declares no selectors. Everything
+  else speaks its vocabulary.
+
 js/
   main.js                  composition root — wires intents to features, boots
   signin.js                the sign-in flow (its own page, its own root)
@@ -28,6 +37,7 @@ js/
   ui/                      chrome; owns no data
     tabs.js                which panel is visible
     layout.js              sidebar, assistant panel width
+    states.js              loading / empty / error, for any panel
 
   features/                one folder-worth of product per file
     overview.js            profile card, problem list, stats
@@ -56,6 +66,8 @@ is the signal to publish an event instead.
 | chrome — tabs, panels, layout | `ui/` | `core/` |
 | a thing the user does | `features/` | `core/`, `api/`, `ui/` |
 | wiring between them | `main.js` | anything |
+| a size, weight, space or text colour | `css/tokens.css` | nothing |
+| a rule using those | `css/style.css` or `dashboard-ext.css` | the tokens |
 
 ## How a click reaches code
 
@@ -111,6 +123,45 @@ wide thing it had.
 the base URL, the bearer token, the 401 policy and the error type are decided in
 one place. And where two modules genuinely needed each other, the upward call
 became an announcement — see below.
+
+## The design layer
+
+`css/tokens.css` holds the scales and nothing else — no selectors, no
+components. It loads before every other stylesheet, so the rest of the CSS has
+a vocabulary to speak rather than a set of magic numbers to re-guess.
+
+It exists because the dashboard had drifted to **thirty distinct font sizes
+across two units** — `13px` beside `13.5px` beside `0.86rem`, which is 13.76px.
+None of that was a decision. Those thirty collapsed into ten steps, and three
+near-identical whites (`#f0f0ff`, `#f1f5f9`, `#e2e8f0`, used interchangeably)
+collapsed into the four text colours that were actually meant.
+
+`scripts/smoke.mjs` keeps it honest: a raw `font-size` outside `tokens.css`
+fails, and so does a `var()` naming a token nobody declares. That second rule
+found `var(--accent)` — a token that never existed — silently dropping three
+System Design rules, including the active topic card's left accent bar.
+
+### Two shapes of tab
+
+A panel is a **document** (capped at `--tab-max`, centred, for reading) or a
+**canvas** (full width, for a graph, a hub, an embedded app). A canvas says so
+in the markup:
+
+```html
+<div id="tab-knowledge" class="tab-content tab-content--full">
+```
+
+This used to be one default that four tabs overrode with `max-width: 100%
+!important` — which is what a default looks like when it was never really a
+default.
+
+### Panel states
+
+Loading, empty and error come from `js/ui/states.js`, not from each feature.
+Before, the Drive panel used an hourglass emoji for loading, a bare sentence for
+empty, and red text via an inline `style="color:#ef4444"` inside a template
+string, where no stylesheet could reach it. Features now ask for a state and
+never write that markup.
 
 ## Why there is an event bus
 

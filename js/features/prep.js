@@ -13,6 +13,7 @@
 import { API_BASE } from '../core/config.js';
 import { el } from '../core/dom.js';
 import { EVENTS, on } from '../core/events.js';
+import { errorState, loadingState } from '../ui/states.js';
 
 /** Where the study app lives. Same host as the API — it is served by it. */
 const PREP_URL = () => `${API_BASE}/prep/`;
@@ -29,13 +30,30 @@ export function renderPrepEmbed(force = false) {
   if (!wrap) return;
   if (loaded && !force) return;
 
-  wrap.innerHTML = `
-    <iframe
-      class="prep-embed"
-      src="${PREP_URL()}"
-      title="Interview Kit"
-      referrerpolicy="no-referrer"
-      loading="lazy"></iframe>`;
+  // The state goes in first and the frame paints over it. A whole app takes
+  // a moment to boot, and a blank rectangle in the meantime reads as broken.
+  wrap.innerHTML = loadingState('Opening your question bank, plan and explainers…');
+
+  const frame = document.createElement('iframe');
+  frame.className = 'prep-embed';
+  frame.title = 'Interview Kit';
+  frame.referrerPolicy = 'no-referrer';
+
+  // A cross-origin frame will not tell us that the server returned 502 — the
+  // load event fires either way. What it will tell us is that it never loaded
+  // at all, which is the case worth reporting: the service is not running.
+  const failIfSilent = window.setTimeout(() => {
+    wrap.innerHTML = errorState({
+      title: 'The Interview Kit did not load',
+      detail: `Nothing answered at ${PREP_URL()}. If you are running locally, the tracker service needs to be up.`,
+      retryAction: 'prep:reload',
+    });
+    loaded = false;
+  }, 12000);
+
+  frame.addEventListener('load', () => window.clearTimeout(failIfSilent));
+  frame.src = PREP_URL();
+  wrap.appendChild(frame);
   loaded = true;
 }
 
