@@ -7,89 +7,9 @@
 
 // API_BASE is now globally provided by config.js
 
-// ── Debug Logger ────────────────────────────────────────────────
-function log(msg, isError = false) {
-  if (isError) {
-    console.error(`[Dashboard] ${msg}`);
-  } else {
-    console.log(`[Dashboard] ${msg}`);
-  }
-}
-
-// ── Auth guard ───────────────────────────────────────────────────
-
-function getToken() {
-  const token = sessionStorage.getItem('gToken');
-  if (!token) {
-    window.location.href = '/index.html';
-    return null;
-  }
-  return token;
-}
-
-/**
- * Google ID tokens expire after about an hour, after which every API call
- * returns 401 and the dashboard used to sit there showing stale cached data
- * with no way back. Send the user to sign in again instead.
- *
- * Guarded against a redirect loop: if signing in again still produces a 401
- * (a genuine backend/audience misconfiguration rather than an expired token)
- * we stop bouncing and surface the error.
- */
-const REAUTH_FLAG = 'dpt_reauth_attempted';
-
-function handleAuthExpiry() {
-  if (sessionStorage.getItem(REAUTH_FLAG)) {
-    log('Still unauthorized after re-authenticating — not redirecting again.', true);
-    showSessionBanner(
-      'The server rejected your sign-in. This usually means the backend GOOGLE_CLIENT_ID ' +
-      'does not match this site. Your cached data is shown below.'
-    );
-    return false;
-  }
-  sessionStorage.setItem(REAUTH_FLAG, '1');
-  sessionStorage.removeItem('gToken');
-  sessionStorage.removeItem('user');
-  window.location.href = '/index.html?expired=1';
-  return true;
-}
-
-/** Non-blocking banner pinned to the top of the dashboard. */
-function showSessionBanner(message) {
-  let bar = el('sessionBanner');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'sessionBanner';
-    bar.className = 'session-banner';
-    document.body.prepend(bar);
-  }
-  bar.textContent = message;
-  bar.style.display = 'block';
-}
-
-function getCachedUser() {
-  const raw = sessionStorage.getItem('user');
-  return raw ? JSON.parse(raw) : null;
-}
-
-function authHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`,
-  };
-}
-
-// ── Sign out ─────────────────────────────────────────────────────
-
-function signOut() {
-  sessionStorage.removeItem('gToken');
-  sessionStorage.removeItem('user');
-  sessionStorage.removeItem(REAUTH_FLAG);
-  // Forget the remembered Google account, so the next sign-in shows the full
-  // account chooser instead of jumping straight back into the same one.
-  try { google?.accounts?.id?.disableAutoSelect(); } catch (_) {}
-  window.location.href = '/index.html';
-}
+// Session handling, logging and apiFetch now live in js/api.js, which loads
+// before this file. tracker.js uses them too — it always did, but only because
+// dashboard.js happened to be loaded first.
 
 // ── Render helpers ───────────────────────────────────────────────
 
@@ -184,12 +104,7 @@ async function deleteProblem(event, problemId) {
   event.stopPropagation();
   if (!confirm('Delete this problem from your dashboard?')) return;
   try {
-    const res = await fetch(`${API_BASE}/api/problems/${problemId}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    });
-    if (res.status === 401) { handleAuthExpiry(); return; }
-    if (!res.ok) throw new Error(`Delete failed (HTTP ${res.status})`);
+    await apiFetch(`/api/problems/${problemId}`, { method: 'DELETE' });
     await refreshOverview();
   } catch (err) {
     alert('Could not delete problem: ' + err.message);
@@ -251,17 +166,7 @@ async function submitProblem(event) {
       notes:      el('problemNotes').value.trim() || null,
     };
 
-    const res = await fetch(`${API_BASE}/api/problems`, {
-      method:  'POST',
-      headers: authHeaders(),
-      body:    JSON.stringify(payload),
-    });
-
-    if (res.status === 401) { handleAuthExpiry(); return; }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Failed to add problem (HTTP ${res.status})`);
-    }
+    await apiFetch('/api/problems', { method: 'POST', body: payload });
 
     closeAddProblemModal();
     // Repaint the list and the stat tiles. This used to call loadProblems()
@@ -293,23 +198,21 @@ async function refreshOverview() {
 async function loadMe() {
   log('Fetching profile from /api/users/me...');
   try {
-    const res = await fetch(`${API_BASE}/api/users/me`, { headers: authHeaders() });
-    log(`Profile response status: ${res.status}`);
-
-    // A 401 here means the Google ID token expired (they last ~1 hour) or was
-    // issued for a different client ID.
-    if (res.status === 401) {
+    // handle401: false — this one decides for itself, because falling back to
+    // the cached profile is better than a redirect when re-auth already failed.
+    const me = await apiFetch('/api/users/me', { handle401: false });
+    sessionStorage.removeItem(REAUTH_FLAG); // token works; reset the loop guard
+    return me;
+  } catch (err) {
+    if (err instanceof ApiError && err.isUnauthorized) {
       log('401 from /api/users/me — session expired, re-authenticating', true);
       if (handleAuthExpiry()) return null;
       return getCachedUser();
     }
-    if (!res.ok) {
-      log(`API error: ${res.status} ${res.statusText}`, true);
+    if (err instanceof ApiError) {
+      log(`API error: ${err.status} ${err.message}`, true);
       return getCachedUser(); // Degrade gracefully instead of looping
     }
-    sessionStorage.removeItem(REAUTH_FLAG); // token works; reset the loop guard
-    return res.json();
-  } catch (err) {
     log(`Network or parser error: ${err.message} — using cached profile`, true);
     showSessionBanner('Could not reach the server. Showing your last cached data.');
     return getCachedUser(); // Network failure: still show dashboard with cached data
@@ -319,12 +222,7 @@ async function loadMe() {
 async function loadProblems(userId) {
   log('Loading problems from /api/problems/user/' + userId + '...');
   try {
-    const res = await fetch(`${API_BASE}/api/problems/user/${userId}`, { headers: authHeaders() });
-    if (!res.ok) {
-      log(`Problems API error: ${res.status}`, true);
-      return [];
-    }
-    return res.json();
+    return await apiFetch(`/api/problems/user/${userId}`);
   } catch (err) {
     log(`Failed to load problems: ${err.message}`, true);
     return [];
@@ -334,12 +232,7 @@ async function loadProblems(userId) {
 async function loadAnalytics(userId) {
   log(`Loading analytics from /api/analytics/user/${userId}...`);
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/user/${userId}`, { headers: authHeaders() });
-    if (!res.ok) {
-      log(`Analytics API error: ${res.status}`, true);
-      return null;
-    }
-    return res.json();
+    return await apiFetch(`/api/analytics/user/${userId}`);
   } catch (err) {
     log(`Failed to load analytics: ${err.message}`, true);
     return null;
@@ -350,12 +243,7 @@ async function loadAnalytics(userId) {
 async function loadMyAnalytics() {
   log('Loading analytics from /api/analytics/me...');
   try {
-    const res = await fetch(`${API_BASE}/api/analytics/me`, { headers: authHeaders() });
-    if (!res.ok) {
-      log(`Analytics /me error: ${res.status}`, true);
-      return null;
-    }
-    return res.json();
+    return await apiFetch('/api/analytics/me');
   } catch (err) {
     log(`Failed to load /me analytics: ${err.message}`, true);
     return null;
@@ -591,20 +479,14 @@ function toVisNode(node) {
 
 // ── API ────────────────────────────────────────────────────────────
 
-async function kwFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}/api/knowledge${path}`, {
-    headers: authHeaders(),
-    ...options,
-  });
-  if (res.status === 401) {
-    handleAuthExpiry();
-    throw new Error('Your session expired. Please sign in again.');
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Request failed (HTTP ${res.status})`);
-  }
-  return res.status === 204 ? null : res.json();
+/**
+ * The knowledge map's corner of the API. This was a hand-written copy of
+ * apiFetch before apiFetch existed; now it only supplies the path prefix.
+ *
+ * Note bodies are plain objects here — apiFetch serialises them.
+ */
+function kwFetch(path, options = {}) {
+  return apiFetch(`/api/knowledge${path}`, options);
 }
 
 /**
@@ -674,7 +556,7 @@ async function migrateLocalGraph() {
   try {
     const result = await kwFetch('/import', {
       method: 'POST',
-      body: JSON.stringify({ nodes: nodeList, edges: edgeList, categories }),
+      body: { nodes: nodeList, edges: edgeList, categories },
     });
     localStorage.setItem(KW_MIGRATED_KEY, '1');
     log(result.imported
@@ -738,7 +620,7 @@ async function confirmNewCategory() {
   try {
     const cat = await kwFetch('/categories', {
       method: 'POST',
-      body: JSON.stringify({ label: name, icon: '📌' }),
+      body: { label: name, icon: '📌' },
     });
 
     _categories.push(cat);
@@ -1130,7 +1012,7 @@ async function addKnowledgeNode() {
   try {
     const node = await kwFetch('/nodes', {
       method: 'POST',
-      body: JSON.stringify({ label, url: link || null, categoryKey }),
+      body: { label, url: link || null, categoryKey },
     });
 
     // Splice the new node in rather than refetching the whole map, so the
@@ -1226,7 +1108,7 @@ async function savePortalToKnowledge(btn, label, url) {
   try {
     const node = await kwFetch('/nodes', {
       method: 'POST',
-      body: JSON.stringify({ label, url, categoryKey }),
+      body: { label, url, categoryKey },
     });
 
     // Keep an already-built graph in step, so switching tabs shows it without

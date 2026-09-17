@@ -80,20 +80,11 @@ async function saveSettings() {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 
   try {
-    const res = await fetch(`${API_BASE}/api/users/me/settings`, {
-      method:  'PUT',
-      headers: authHeaders(),
-      body:    JSON.stringify(serverSettings),
+    // handle401: false throughout this file — these panels show the expiry
+    // inline rather than bouncing the user out mid-edit.
+    await apiFetch('/api/users/me/settings', {
+      method: 'PUT', body: serverSettings, handle401: false,
     });
-
-    if (res.status === 401) {
-      showSettingsStatus('Your session expired. Please sign in again.', 'error');
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `HTTP ${res.status}`);
-    }
 
     // Update local cache
     const user = getCachedUser();
@@ -108,6 +99,10 @@ async function saveSettings() {
     // Saying "saved" after a failed request meant settings silently reverted
     // on the next device. Report it instead.
     console.error('[Settings] Save failed:', e);
+    if (e instanceof ApiError && e.isUnauthorized) {
+      showSettingsStatus('Your session expired. Please sign in again.', 'error');
+      return;
+    }
     showSettingsStatus(
       `⚠️ Saved on this device only — the server rejected it (${e.message}).`,
       'error'
@@ -182,19 +177,8 @@ async function loadGeminiModels() {
   showModelHint('Asking Gemini which models your key can use…');
 
   try {
-    const res = await fetch(`${API_BASE}/api/gemini/models`, { headers: authHeaders() });
-
-    if (res.status === 401) {
-      showModelHint('Your session expired. Please sign in again.', 'fail');
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Could not load models (HTTP ${res.status})`);
-    }
-
-    const data = await res.json();
-    const models = data.models || [];
+    const data = await apiFetch('/api/gemini/models', { handle401: false });
+    const models = (data && data.models) || [];
     if (!models.length) {
       showModelHint('Your key returned no models that support content generation.', 'fail');
       return;
@@ -372,28 +356,12 @@ async function sendGeminiChat() {
   const loadingId = appendGeminiMsg('Thinking...', 'bot', true);
 
   try {
-    const endpoint = `${API_BASE}/api/gemini/chat`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ message: text })
+    // apiFetch surfaces the server's own {"message": "..."} for both a missing
+    // key (400) and an upstream refusal (502).
+    const data = await apiFetch('/api/gemini/chat', {
+      method: 'POST', body: { message: text }, handle401: false,
     });
-
-    if (res.status === 401) {
-      updateGeminiMsg(loadingId, 'Your session expired. Please sign in again.');
-      return;
-    }
-    if (!res.ok) {
-      // The server sends {"message": "..."} for both a missing key (400) and
-      // an upstream refusal (502). It previously returned an empty body, which
-      // rendered as "API Error:" with nothing after it.
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Gemini request failed (HTTP ${res.status})`);
-    }
-    const data = await res.json();
-    const reply = data.reply;
-
-    updateGeminiMsg(loadingId, formatGeminiMsg(reply));
+    updateGeminiMsg(loadingId, formatGeminiMsg(data && data.reply));
   } catch (err) {
     updateGeminiMsg(loadingId, '⚠️ ' + escapeHtml(err.message));
   }
@@ -518,17 +486,7 @@ async function analyzeCodeWithGemini(title, code, url = '') {
     url: url
   };
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(payload)
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Gemini request failed (HTTP ${res.status})`);
-  }
-  return res.json();
+  return apiFetch(endpoint, { method: 'POST', body: payload, handle401: false });
 }
 
 function showGeminiStatus(msg, type) {
@@ -589,20 +547,7 @@ async function submitTrackerProblem() {
       tags:       difficulty,
     };
 
-    const res = await fetch(`${API_BASE}/api/problems`, {
-      method:  'POST',
-      headers: authHeaders(),
-      body:    JSON.stringify(payload),
-    });
-
-    if (res.status === 401) {
-      showGeminiStatus('❌ Your session expired. Please sign in again.', 'error');
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Server error ${res.status}`);
-    }
+    await apiFetch('/api/problems', { method: 'POST', body: payload, handle401: false });
 
     showGeminiStatus('✅ Problem saved to dashboard!', 'success');
 
