@@ -10,7 +10,6 @@
  * Looking for where something is wired? It is here.
  * Looking for what something does? It is in the feature module.
  */
-import { API_BASE } from './core/config.js';
 import { el } from './core/dom.js';
 import { log } from './core/log.js';
 import { register, startActions } from './core/actions.js';
@@ -37,6 +36,7 @@ import {
   connectGoogleDrive, loadFolderDocs, openDriveFolder,
   openSheetExternal, reloadSheetEmbed,
 } from './features/workspace.js';
+import { openPrepExternal, reloadPrepEmbed } from './features/prep.js';
 
 /* ── what the markup is allowed to ask for ────────────────────────────────── */
 
@@ -94,6 +94,10 @@ register({
   'drive:openFolder':          () => openDriveFolder(),
   'sheet:reload':              () => reloadSheetEmbed(),
   'sheet:open':                () => openSheetExternal(),
+
+  // interview kit
+  'prep:reload':               () => reloadPrepEmbed(),
+  'prep:open':                 () => openPrepExternal(),
 });
 
 /* ── boot ─────────────────────────────────────────────────────────────────── */
@@ -154,14 +158,5 @@ export async function init() {
   }
 }
 
-/** The study app is served by the API host, so its link follows API_BASE. */
-function wirePrepKitLink() {
-  const link = el('prepKitLink');
-  if (link && API_BASE) link.href = API_BASE + '/prep/';
-}
-
 startActions();
-document.addEventListener('DOMContentLoaded', () => {
-  wirePrepKitLink();
-  init();
-});
+document.addEventListener('DOMContentLoaded', init);

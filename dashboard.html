@@ -74,10 +74,9 @@
         <!-- Served by the tracker service itself at /prep, so it shares the API
              origin and the same Google sign-in. Opens in a new tab because it is
              a full app, not a panel in this one. -->
-        <a class="dash-tab dash-tab--external" id="prepKitLink" href="#" target="_blank" rel="noopener">
+        <button class="dash-tab" data-tab="prep">
           <span class="tab-icon">🎯</span> <span class="tab-label">Interview Kit</span>
-          <span class="tab-external">↗</span>
-        </a>
+        </button>
 
         <div class="nav-section-title">Workspace</div>
         <button class="dash-tab" data-tab="folder">
@@ -366,6 +365,22 @@
           </div>
           <div id="sheetEmbed" class="sheet-embed-wrap"></div>
         </div>
+      </div>
+
+      <!-- The kit is a whole app, so it gets one header instead of the usual
+           title + card-header pair, and the full width of the content area. -->
+      <div id="tab-prep" class="tab-content">
+        <div class="tab-header prep-header">
+          <div>
+            <h2 class="tab-title">🎯 Interview Kit</h2>
+            <p class="tab-subtitle">Your question bank, the 16-week plan and the animated explainers.</p>
+          </div>
+          <div class="qv-actions">
+            <button class="btn btn-ghost btn-sm" data-action="prep:reload">↻ Refresh</button>
+            <button class="btn btn-primary btn-sm" data-action="prep:open">Open Full ↗</button>
+          </div>
+        </div>
+        <div id="prepEmbed" class="prep-embed-wrap"></div>
       </div>
 
       <!-- ══════════════════════════════════════════════════════ -->

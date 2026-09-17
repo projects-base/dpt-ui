@@ -120,11 +120,23 @@ if (!failed) {
     err && err.message);
 }
 
-section('the link out to the study app');
-const link = window.document.getElementById('prepKitLink');
-check('exists', !!link);
-check('carries no data-tab', link && !link.dataset.tab,
-  'a data-tab here would blank the dashboard on click');
+section('the Interview Kit is a tab, not a way out');
+// It used to be an <a target="_blank">, which stranded you in the study app
+// with no route back to the dashboard.
+const prepTab = window.document.querySelector('.dash-tab[data-tab="prep"]');
+const prepPanel = window.document.getElementById('tab-prep');
+const prepMount = window.document.getElementById('prepEmbed');
+check('sidebar row is a tab like Knowledge Web', !!prepTab);
+check('it is not a link', prepTab && prepTab.tagName === 'BUTTON', prepTab && prepTab.tagName);
+check('its panel exists', !!prepPanel);
+check('the panel has a mount point', !!prepMount);
+check('no stranding link remains', !window.document.getElementById('prepKitLink'));
+
+// Every tab in the sidebar should have a panel to show.
+const orphanTabs = [...window.document.querySelectorAll('.dash-tab[data-tab]')]
+  .map((t) => t.dataset.tab)
+  .filter((id) => !window.document.getElementById('tab-' + id));
+check('every sidebar tab has a panel', orphanTabs.length === 0, orphanTabs.join(', '));
 
 if (noticed.length) {
   section('jsdom notices');
