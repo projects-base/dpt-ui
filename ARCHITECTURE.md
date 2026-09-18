@@ -24,6 +24,7 @@ js/
 
   core/                    knows the browser; knows nothing about this product
     config.js              API base and client id
+    demo.js                fixtures for ?demo=1 — see Demo mode below
     log.js                 one console prefix
     dom.js                 element lookup, escaping, formatting
     session.js             the token, the cached user, what to do when it expires
@@ -175,6 +176,64 @@ Only to break cycles, and there were exactly three:
 
 Everywhere else a plain import is clearer and stays a plain import. An event bus
 used for everything is just a global with extra steps.
+
+## Running it locally
+
+```bash
+python scripts/serve.py          # http://localhost:3000
+```
+
+Port 3000 because that is the origin registered with Google OAuth — signing in
+from any other port fails with `redirect_uri_mismatch`.
+
+Use this rather than `python -m http.server`. `http.server` sends no
+`Cache-Control`, which lets Chrome apply *heuristic freshness*: it guesses a
+lifetime from the file's age and serves the cached copy without revalidating.
+On a project with no build step that is genuinely painful — you edit a
+stylesheet or a module, reload, and silently get the old one. It cost three
+separate rounds of "why is my change not showing" during development. This
+server sends `no-store`, so reload means reload.
+
+## Demo mode
+
+```
+http://localhost:3000/dashboard.html?demo=1
+```
+
+Every screen filled with plausible data and no sign-in. It exists because an
+empty dashboard shows you the empty states and nothing else.
+
+It is **not** a demo account, and deliberately so. The backend is an OAuth2
+resource server that accepts Google ID tokens and nothing else, so a demo login
+would mean adding a second way in to an app wired to a live database. A
+credential that exists can be shared, leaked and forgotten about.
+
+Its safety is what it cannot do, not what it promises:
+
+- **No request reaches our backend.** `apiFetch` returns from `core/demo.js`
+  before it touches `fetch`. The demo renders fine with the service stopped,
+  which is how it was tested.
+- **Writes are refused, not faked** — a 403 with a reason, so nothing silently
+  pretends to have saved.
+- **Off unless `?demo=1`** is in the URL. It cannot switch itself on, and the
+  flag lives in `sessionStorage`, so it never outlives the tab.
+- **It never touches the real session keys**, so it cannot hold a live token or
+  clobber a signed-in user.
+
+`scripts/smoke.mjs` asserts all four.
+
+Drive and Sheets are the exception worth knowing: they talk to Google directly
+with a different token, so `apiFetch` never sees them. They are handled inside
+`features/workspace.js` instead, and point at content shared *anyone with the
+link → viewer* via `DEMO_DRIVE_FOLDER_ID` and `DEMO_SHEET_ID`. Those two panels
+do therefore make requests — to Google, never to us, which is why the banner
+says "the tracker service is never called" rather than "the server".
+
+Both embeds carry `.embed-dark`, an `invert(0.9) hue-rotate(180deg)` filter.
+They are cross-origin, so their CSS is Google's and unreachable, and neither
+takes a dark-mode parameter — a filter on the frame is the only lever. It
+cannot tell content from chrome, so file icons and chart hues shift. Remove the
+class to go back to Google's light theme.
 
 ## Errors
 
