@@ -41,6 +41,16 @@ export function renderUserProfile(user) {
   titleEl.append(nameEl, ' ' + String.fromCodePoint(0x1F44B));
 }
 
+/**
+ * How many rows "Recent Problems" shows.
+ *
+ * The card is called Recent, and there is no pagination behind it — so past a
+ * point it is just a long list in a small box that you scroll and never reach
+ * the end of. Ten is a screenful. The count on the stat card above already
+ * tells you the real total.
+ */
+export const RECENT_LIMIT = 10;
+
 export function renderProblems(problems) {
   const list      = el('problemList');
   const emptyState = el('problemEmptyState');
@@ -55,8 +65,10 @@ export function renderProblems(problems) {
 
   // Clear old items
   list.querySelectorAll('.problem-item').forEach(n => n.remove());
+  list.querySelectorAll('.problem-more').forEach(n => n.remove());
 
-  problems.forEach(p => {
+  const shown = problems.slice(0, RECENT_LIMIT);
+  shown.forEach(p => {
     const diff = (p.difficulty || 'EASY').toUpperCase();
     const tags = (p.tags || '').split(',').filter(t => t.trim()).slice(0, 3);
 
@@ -78,6 +90,15 @@ export function renderProblems(problems) {
     }
     list.appendChild(item);
   });
+
+  // Say what is not shown, rather than letting the list just stop.
+  const hidden = problems.length - shown.length;
+  if (hidden > 0) {
+    const more = document.createElement('p');
+    more.className = 'problem-more';
+    more.textContent = `+ ${hidden} more — showing your ${RECENT_LIMIT} most recent`;
+    list.appendChild(more);
+  }
 }
 
 export async function deleteProblem(event, problemId) {

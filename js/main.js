@@ -14,6 +14,7 @@ import { el } from './core/dom.js';
 import { log } from './core/log.js';
 import { register, startActions } from './core/actions.js';
 import { getCachedUser, getToken, signOut } from './core/session.js';
+import { isDemoMode, showDemoBanner } from './core/demo.js';
 
 import { switchTab } from './ui/tabs.js';
 import { toggleAIChat, toggleAIWide, toggleLeftSidebar } from './ui/layout.js';
@@ -104,6 +105,10 @@ register({
 
 export async function init() {
   log('Initializing dashboard...');
+  if (isDemoMode()) {
+    log('Demo mode — sample data, no network calls.');
+    showDemoBanner();
+  }
   const token = getToken();
   if (!token) return;
 

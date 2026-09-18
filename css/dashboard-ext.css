@@ -1460,3 +1460,43 @@ body.ai-resizing iframe { pointer-events: none; }
   margin: 0;
 }
 .prep-embed { position: relative; z-index: 1; }
+
+/* ── Demo banner ───────────────────────────────────────────────────────
+   Sample data that does not announce itself is a trap: you read a number
+   off the screen and believe it. Pinned, full width, and deliberately not
+   dismissible. */
+.demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  padding: var(--space-2) var(--space-4);
+  background: linear-gradient(90deg, rgba(139,92,246,0.22), rgba(99,102,241,0.22));
+  border-bottom: 1px solid var(--border-hover);
+  color: var(--text-body);
+  font-size: var(--fs-300);
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+.demo-banner strong { color: var(--text-primary); }
+.demo-banner a { margin-left: var(--space-2); color: var(--accent-3); }
+
+/* The "+ N more" footer under Recent Problems. Quiet — it is a fact about the
+   list, not an action, and there is nowhere for it to lead. */
+.problem-more {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--fs-300);
+  text-align: center;
+}
+
+/* Drive's embedded folder listing, used only in demo mode. */
+.drive-embed {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  display: block;
+}

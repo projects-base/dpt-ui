@@ -6,11 +6,16 @@
  * knowledge map.
  */
 import { log } from './log.js';
+import { DEMO_USER, isDemoMode } from './demo.js';
 import { GOOGLE_CLIENT_ID } from './config.js';
 
 export const REAUTH_FLAG = 'dpt_reauth_attempted';
 
 export function getToken() {
+  // A demo visitor has no Google token and must not be sent to sign in for one.
+  // The value is never sent anywhere — apiFetch returns before it is used.
+  if (isDemoMode()) return 'demo';
+
   const token = sessionStorage.getItem('gToken');
   if (!token) {
     window.location.href = '/index.html';
@@ -20,6 +25,8 @@ export function getToken() {
 }
 
 export function getCachedUser() {
+  if (isDemoMode()) return DEMO_USER;
+
   const raw = sessionStorage.getItem('user');
   try {
     return raw ? JSON.parse(raw) : null;
@@ -79,6 +86,11 @@ export function showSessionBanner(message) {
 }
 
 export function signOut() {
+  // Leaving the demo is just leaving the demo — there is no session to end.
+  if (isDemoMode()) {
+    window.location.href = '/dashboard.html?demo=0';
+    return;
+  }
   sessionStorage.removeItem('gToken');
   sessionStorage.removeItem('user');
   sessionStorage.removeItem(REAUTH_FLAG);

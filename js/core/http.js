@@ -8,6 +8,7 @@
  */
 import { API_BASE } from './config.js';
 import { authHeaders, handleAuthExpiry } from './session.js';
+import { demoRespond, isDemoMode } from './demo.js';
 import { on } from './events.js';
 
 export class ApiError extends Error {
@@ -41,6 +42,12 @@ export class ApiError extends Error {
  */
 export async function apiFetch(path, options = {}) {
   const { method = 'GET', body, handle401 = true, raw = false, headers } = options;
+
+  // Demo mode answers from fixtures and returns here — before `fetch`, before
+  // the token is read. That is the whole safety argument: the service and the
+  // database are not merely left unmodified, they are never contacted.
+  if (isDemoMode()) return demoRespond(path, method);
+
   const url = /^https?:\/\//.test(path) ? path : `${API_BASE}${path}`;
 
   const res = await fetch(url, {

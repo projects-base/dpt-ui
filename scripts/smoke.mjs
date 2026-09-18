@@ -168,6 +168,64 @@ if (!failed) {
   check('applyGraph paints a graph without throwing', threw === null, threw && threw.message);
 }
 
+section('demo mode is off, and airtight when on');
+// The whole safety argument is negative — demo mode is safe because of what
+// it CANNOT do — so these assert the absences.
+{
+  const demoUrl = pathToFileURL(path.join(ROOT, 'js/core/demo.js')).href;
+  const demo = await import(demoUrl);
+  const httpMod = await import(pathToFileURL(path.join(ROOT, 'js/core/http.js')).href);
+
+  // The jsdom window was created at /dashboard.html with no query string.
+  check('off by default', demo.isDemoMode() === false);
+
+  window.sessionStorage.setItem('dpt_demo_mode', '1');
+  check('on once the flag is set', demo.isDemoMode() === true);
+
+  calls.length = 0;
+  globalThis.fetch = window.fetch = () => {
+    throw new Error('demo mode reached the network');
+  };
+  const me = await httpMod.apiFetch('/api/users/me');
+  check('a GET is answered without touching the network', me && me.email === 'demo@example.com');
+  check('no request was made', calls.length === 0);
+
+  let refused = null;
+  try {
+    await httpMod.apiFetch('/api/problems', { method: 'POST', body: { title: 'x' } });
+  } catch (e) {
+    refused = e;
+  }
+  check('a write is refused, not faked', refused !== null && refused.status === 403, refused && refused.message);
+
+  let delRefused = null;
+  try {
+    await httpMod.apiFetch('/api/problems/1', { method: 'DELETE' });
+  } catch (e) {
+    delRefused = e;
+  }
+  check('a delete is refused too', delRefused !== null && delRefused.status === 403);
+
+  // Every screen the sidebar offers must have something to show.
+  for (const p2 of ['/api/users/me', '/api/problems/user/9001', '/api/analytics/user/9001',
+                    '/api/knowledge', '/api/users/me/settings']) {
+    const r = await httpMod.apiFetch(p2);
+    check(`${p2} returns data`, r !== null && r !== undefined);
+  }
+
+  const graph = await httpMod.apiFetch('/api/knowledge');
+  const keys = new Set(graph.nodes.map((n) => n.nodeKey));
+  const dangling = graph.edges.filter((e) => !keys.has(e.from) || !keys.has(e.to));
+  check('the demo graph has no dangling edges', dangling.length === 0,
+    dangling.map((e) => `${e.from}->${e.to}`).join(', '));
+
+  window.sessionStorage.removeItem('dpt_demo_mode');
+  globalThis.fetch = window.fetch = (url, opts) => {
+    calls.push(Object.assign({ url: String(url) }, opts || {}));
+    return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+  };
+}
+
 section('the design tokens are actually used');
 // Thirty distinct font sizes had accumulated across two units — 13px beside
 // 13.5px beside 0.86rem, which is 13.76px. None of it was a decision. The

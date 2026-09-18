@@ -11,6 +11,10 @@ import { initAiResize } from '../ui/layout.js';
 import { GOOGLE_CLIENT_ID } from '../core/config.js';
 import { EVENTS, on } from '../core/events.js';
 import { emptyState, errorState, loadingState } from '../ui/states.js';
+import {
+  DEMO_DRIVE_DOCS, DEMO_DRIVE_FOLDER_ID, DEMO_SHEET_ID,
+  demoFolderEmbedUrl, demoSheetEmbedUrl, isDemoMode,
+} from '../core/demo.js';
 
 export let driveAccessToken = null;
 
@@ -35,6 +39,32 @@ export function connectGoogleDrive() {
 
 export async function loadFolderDocs() {
   const container = v('folderList');
+
+  // Drive is reached directly with a Google token, not through apiFetch, so
+  // demo mode has to be handled here rather than at the HTTP layer.
+  if (isDemoMode()) {
+    v('folderAuthBanner').style.display = 'none';
+
+    // A real folder shared "anyone with the link → Viewer" can be listed by
+    // Drive's own embed — no token, no API key, and read-only by construction.
+    if (DEMO_DRIVE_FOLDER_ID) {
+      container.innerHTML = `
+        <iframe class="drive-embed" src="${demoFolderEmbedUrl()}"
+                title="Demo Drive folder" referrerpolicy="no-referrer"></iframe>`;
+      return;
+    }
+
+    container.innerHTML = DEMO_DRIVE_DOCS.map((f) => `
+      <div class="qv-doc-item">
+        <span class="qv-doc-icon">&#128196;</span>
+        <div class="qv-doc-info">
+          <span class="qv-doc-name">${escapeHtml(f.name)}</span>
+          <span class="qv-doc-date">${new Date(f.createdTime).toLocaleDateString()}</span>
+        </div>
+      </div>`).join('');
+    return;
+  }
+
   if (!driveAccessToken) {
     v('folderAuthBanner').style.display = 'block';
     container.innerHTML = '';
@@ -98,6 +128,29 @@ export function openDriveFolder() {
 
 export function renderSheetEmbed(force = false) {
   const container = v('sheetEmbed');
+
+  // Embedding a real Google Sheet needs a real Sheet. Rather than frame
+  // someone else's, say so — a demo that lies about one panel is worth less
+  // than one that is honest about it.
+  if (isDemoMode()) {
+    // /preview is the viewer: no toolbar, no edit affordances, nothing to
+    // click into. The sheet must be shared "anyone with the link → Viewer".
+    if (DEMO_SHEET_ID) {
+      if (!force && v('sheetIframe')) return;
+      container.innerHTML = `
+        <iframe id="sheetIframe" class="sheet-iframe" src="${demoSheetEmbedUrl()}"
+                title="Demo spreadsheet" referrerpolicy="no-referrer"></iframe>`;
+      return;
+    }
+
+    container.innerHTML = emptyState({
+      icon: '\u{1F4CA}',
+      title: 'Not available in the demo',
+      hint: 'This panel embeds your own Google Sheet, so there is nothing to show without one. Every other panel is live.',
+    });
+    return;
+  }
+
   if (!settings.sheetUrl) {
     // One line of text stranded in a tall empty card reads as broken. Give the
     // empty state a shape, and a way out of it.
