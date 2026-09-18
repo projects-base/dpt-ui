@@ -980,3 +980,44 @@ select.form-input:hover { border-color: rgba(255, 255, 255, 0.18); }
   caret-color: var(--text-primary);
   transition: background-color 9999s ease-in-out 0s;
 }
+
+/* ── Demo entry on the sign-in card ───────────────────────────────────
+   Secondary to the Google button on purpose: someone with an account
+   should not have to pick it out from a pair of equals. Quiet type, a
+   rule above it for separation, and the consequence stated underneath
+   so nobody arrives expecting their own data. */
+.demo-entry {
+  margin-top: var(--space-5);
+  /* The legal text sits immediately below; without this the demo note and
+     "By signing in you agree to..." read as one run-on paragraph. */
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+.demo-entry-rule {
+  display: block;
+  height: 1px;
+  margin: 0 0 var(--space-4);
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+.demo-entry-link {
+  display: inline-block;
+  font-size: var(--fs-400);
+  font-weight: var(--fw-medium);
+  color: var(--accent-3);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.demo-entry-link:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  text-decoration: none;
+}
+.demo-entry-note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-200);
+  color: var(--text-muted);
+}

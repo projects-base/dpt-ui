@@ -85,6 +85,18 @@
       <!-- Google Sign-In button (rendered by GSI) -->
       <div id="google-signin-btn" class="google-btn-wrapper"></div>
 
+      <!-- A way in for someone who has no account and should not need one.
+           A plain link, deliberately: it carries the flag in the URL, so there
+           is no state to set, nothing to clear, and the back button works.
+           Styled below the real sign-in because it is the secondary path. -->
+      <div class="demo-entry">
+        <span class="demo-entry-rule"></span>
+        <a class="demo-entry-link" href="dashboard.html?demo=1">
+          Explore the demo &rarr;
+        </a>
+        <p class="demo-entry-note">Sample data, no sign-in, nothing is saved.</p>
+      </div>
+
 
 
       <!-- Error message -->
