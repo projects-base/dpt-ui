@@ -82,8 +82,8 @@ export function isDemoMode() {
         docs.google.com/spreadsheets/d/<THIS>/edit
 
    Paste the two ids here. Nothing else needs to change. */
-export const DEMO_DRIVE_FOLDER_ID = '';
-export const DEMO_SHEET_ID = '';
+export const DEMO_DRIVE_FOLDER_ID = '1l1bWYu6lyhMW32MTUMhtM_bVG-_XPR0_';
+export const DEMO_SHEET_ID = '1Cq748eCf70ArNgeEn647s-gXPcVcSG76bNHaLpjNtj0';
 
 /** Drive's own read-only folder listing. No auth, no API key. */
 export const demoFolderEmbedUrl = () =>
@@ -288,8 +288,10 @@ export function showDemoBanner() {
   const bar = document.createElement('div');
   bar.id = 'demoBanner';
   bar.className = 'demo-banner';
+  // Precise, not just reassuring: with the Drive/Sheets ids set, those two
+  // panels DO fetch from Google. What never happens is a call to our backend.
   bar.innerHTML =
-    '<strong>Demo mode</strong> — sample data, nothing is saved and the server is never contacted. ' +
+    '<strong>Demo mode</strong> — sample data, nothing is saved, and the tracker service is never called. ' +
     '<a href="?demo=0">Leave demo</a>';
   document.body.prepend(bar);
   document.body.classList.add('has-demo-banner');
