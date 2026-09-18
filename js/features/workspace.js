@@ -49,7 +49,7 @@ export async function loadFolderDocs() {
     // Drive's own embed — no token, no API key, and read-only by construction.
     if (DEMO_DRIVE_FOLDER_ID) {
       container.innerHTML = `
-        <iframe class="drive-embed" src="${demoFolderEmbedUrl()}"
+        <iframe class="drive-embed embed-dark" src="${demoFolderEmbedUrl()}"
                 title="Demo Drive folder" referrerpolicy="no-referrer"></iframe>`;
       return;
     }
@@ -138,7 +138,7 @@ export function renderSheetEmbed(force = false) {
     if (DEMO_SHEET_ID) {
       if (!force && v('sheetIframe')) return;
       container.innerHTML = `
-        <iframe id="sheetIframe" class="sheet-iframe" src="${demoSheetEmbedUrl()}"
+        <iframe id="sheetIframe" class="sheet-iframe embed-dark" src="${demoSheetEmbedUrl()}"
                 title="Demo spreadsheet" referrerpolicy="no-referrer"></iframe>`;
       return;
     }
@@ -178,7 +178,7 @@ export function renderSheetEmbed(force = false) {
       <div class="sheet-spinner"></div>
       <span>Loading spreadsheet…</span>
     </div>
-    <iframe id="sheetIframe" class="sheet-iframe hidden" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
+    <iframe id="sheetIframe" class="sheet-iframe embed-dark hidden" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
 
   const iframe = v('sheetIframe');
   const loader = v('sheetLoader');

@@ -1548,3 +1548,24 @@ body.ai-resizing iframe { pointer-events: none; }
   min-height: 0;
   height: auto;
 }
+
+/* ── Forcing a dark theme onto Google's embeds ─────────────────────────
+   Drive and Sheets embeds are cross-origin: their CSS is Google's and the
+   same-origin policy means nothing of ours can reach inside. Neither has a
+   dark-mode parameter. So a filter on the frame itself is the only lever
+   there is.
+
+   invert() flips light to dark; hue-rotate(180deg) puts the hues back
+   roughly where they started, so a red line stays red-ish rather than
+   turning cyan. 0.9 rather than 1 keeps white off pure black, which reads
+   softer next to the dashboard's own surfaces.
+
+   The cost is real and unavoidable: everything inverts, including things
+   that were already dark. Google's Docs and Sheets file icons come out
+   wrong, and chart colours shift — the filter cannot tell content from
+   chrome. Remove this block and both frames go back to Google's light
+   theme, which is honest but bright. */
+.embed-dark {
+  filter: invert(0.9) hue-rotate(180deg);
+  background: #fff;   /* invert the white, not the panel behind it */
+}
