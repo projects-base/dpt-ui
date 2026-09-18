@@ -1500,3 +1500,51 @@ body.ai-resizing iframe { pointer-events: none; }
   background: var(--bg-card);
   display: block;
 }
+
+/* ── Sheet and Drive are canvases, not documents ───────────────────────
+   A spreadsheet in a 1100px column on a 1900px screen wastes a third of
+   the width and gives you a scrollbar for columns that would otherwise
+   fit. Same shape as the Interview Kit: the panel is the flex container,
+   the frame is the item that grows, no calc() guess at the chrome above. */
+#tab-sheet.active,
+#tab-folder.active {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 560px;
+}
+#tab-sheet .card,
+#tab-folder .card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* .sheet-card carries `max-width: 1000px; margin: 0 auto` for the document
+     shape. An auto margin on a flex item's cross axis absorbs the free space
+     and cancels the stretch, so the card collapsed to its content width —
+     389px on a 1496px panel. All three have to go for the canvas shape. */
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  height: auto;
+}
+#tab-sheet .sheet-embed-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+/* The Drive iframe is not the card's child — #folderList is. Growing the
+   iframe does nothing while its parent is still sized by content, which is
+   why it collapsed to an iframe's intrinsic 150px. Grow the parent, then
+   fill it. */
+#tab-folder #folderList {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#tab-folder .drive-embed {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
