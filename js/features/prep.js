@@ -13,7 +13,8 @@
 import { API_BASE } from '../core/config.js';
 import { el } from '../core/dom.js';
 import { EVENTS, on } from '../core/events.js';
-import { errorState, loadingState } from '../ui/states.js';
+import { emptyState, errorState, loadingState } from '../ui/states.js';
+import { isDemoMode } from '../core/demo.js';
 
 /** Where the study app lives. Same host as the API — it is served by it. */
 const PREP_URL = () => `${API_BASE}/prep/`;
@@ -29,6 +30,20 @@ export function renderPrepEmbed(force = false) {
   const wrap = el('prepEmbed');
   if (!wrap) return;
   if (loaded && !force) return;
+
+  // The kit is served BY the tracker service, so it is the one panel a demo
+  // cannot stand in for — there is no static copy to point at. Say so at once
+  // rather than framing a URL we know is not answering and making the visitor
+  // wait out the timeout to be told nothing.
+  if (isDemoMode()) {
+    wrap.innerHTML = emptyState({
+      icon: '\u{1F3AF}',
+      title: 'The Interview Kit needs the tracker service',
+      hint: 'It is a separate app served by the backend, so it cannot be demoed from static hosting. Everything else on this dashboard is running.',
+    });
+    loaded = true;
+    return;
+  }
 
   // The state goes in first and the frame paints over it. A whole app takes
   // a moment to boot, and a blank rectangle in the meantime reads as broken.
